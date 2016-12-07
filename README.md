@@ -36,7 +36,24 @@ TODO
 
 ## Tests
 
-TODO
+For example:
+```
+@working_dir $ export T411_USERNAME=your_username && export T411_PASSWORD=your_password && go test ...t411client -gocheck.vv -test.v -gocheck.f Test
+=== RUN   Test
+START: t411client_test.go:27: MySuite.TestNewT411
+PASS: t411client_test.go:27: MySuite.TestNewT411        0.538s
+
+START: torrents_test.go:7: MySuite.TestReqURL
+PASS: torrents_test.go:7: MySuite.TestReqURL    0.001s
+
+START: users_test.go:5: MySuite.TestUsersProfile
+PASS: users_test.go:5: MySuite.TestUsersProfile 0.171s
+
+OK: 3 passed
+--- PASS: Test (0.71s)
+PASS
+ok      github.com/dns-gh/t411-client/t411client        0.877s
+```
 
 ## LICENSE
 
