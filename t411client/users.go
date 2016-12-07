@@ -1,7 +1,9 @@
 package t411client
 
-import "net/url"
-import "strconv"
+import (
+	"net/url"
+	"strconv"
+)
 
 // User returns a user data
 type User struct {

@@ -1,6 +1,8 @@
 package t411client
 
-import . "gopkg.in/check.v1"
+import (
+	. "gopkg.in/check.v1"
+)
 
 func (s *MySuite) TestUsersProfile(c *C) {
 	t411, username, _ := createT411Client(c)
