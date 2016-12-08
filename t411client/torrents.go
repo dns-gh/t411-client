@@ -1,12 +1,10 @@
 package t411client
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -17,7 +15,7 @@ var (
 	errEOF = errors.New("no more torrents to find")
 )
 
-// Torrent represent a torrent as return by the t411 API
+// Torrent represents a torrent as return by the t411 API
 type Torrent struct {
 	ID             string `json:"id"`
 	Name           string `json:"name"`
@@ -41,7 +39,7 @@ type Torrent struct {
 type Torrents []Torrent
 
 func (t *Torrent) String() string {
-	return fmt.Sprintf("%s - %s (%s)", t.ID, t.Name, t.Seeders)
+	return fmt.Sprintf("%s - %s (s:%s, l:%s)", t.ID, t.Name, t.Seeders, t.Leechers)
 }
 
 // BySeeder implements sort.Interface by providing Less and using the Len and
@@ -67,9 +65,8 @@ func (t Torrents) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
 
 // T411 search API is quite strange to use. see https://api.t411.li/
 // they use 'terms' to allow search by category.
-// In this case we are only interested in category Season and episode number.
-// Season and episode number also have specific ID. init method creates the mapping
-
+// In this case we are only interested in category Season and Episode number.
+// Season and Episode number also have specific ID. init method creates the mapping
 var (
 	catSeasonID   = 45
 	catEpisodeID  = 46
@@ -77,15 +74,14 @@ var (
 	seasonNbrID   = map[int]int{}
 	episodeNbrID  = map[int]int{}
 	languageMap   = map[string]int{
-		"anglais":   1209,
-		"français":  1210,
-		"muet":      1211,
-		"multi-fr":  1212,
-		"multi-qb":  1213,
-		"québécois": 1214,
-		"vfstfr":    1215,
-		"vostfr":    1216,
-		"voasta":    1217,
+		"english":    1209,
+		"french":     1210,
+		"mute":       1211,
+		"multi-fr":   1212,
+		"multi-qb":   1213,
+		"quebecker ": 1214,
+		"vfstfr":     1215,
+		"vostfr":     1216,
 	}
 )
 
@@ -106,78 +102,71 @@ type searchReq struct {
 }
 
 // URL returns the url of the search request
-func (r searchReq) URL() string {
-	u, err := url.Parse(fmt.Sprintf("%s/torrents/search/%s", t411BaseURL, r.Title))
+func makeURL(title string, season, episode int, language string) (string, *url.URL, error) {
+	usedAPI := "/torrents/search/"
+	u, err := url.Parse(fmt.Sprintf("%s%s%s", t411BaseURL, usedAPI, title))
 	if err != nil {
-		log.Fatalf("Error during construction of t411 search URL: %v", err)
+		return usedAPI, nil, err
 	}
 	q := u.Query()
-	if r.Season > 0 {
-		q.Add(fmt.Sprintf("term[%d][]", catSeasonID), fmt.Sprintf("%d", seasonNbrID[r.Season]))
+	if season > 0 {
+		q.Add(fmt.Sprintf("term[%d][]", catSeasonID), fmt.Sprintf("%d", seasonNbrID[season]))
 	}
-	if r.Episode > 0 {
-		q.Add(fmt.Sprintf("term[%d][]", catEpisodeID), fmt.Sprintf("%d", episodeNbrID[r.Episode]))
+	if episode > 0 {
+		q.Add(fmt.Sprintf("term[%d][]", catEpisodeID), fmt.Sprintf("%d", episodeNbrID[episode]))
 	}
-	if ID, ok := languageMap[r.Language]; ok {
+	if ID, ok := languageMap[language]; ok {
 		q.Add(fmt.Sprintf("term[%d][]", catLanguageID), fmt.Sprintf("%d", ID))
 
 	}
 	u.RawQuery = q.Encode()
-
-	return u.String()
+	return usedAPI, u, nil
 }
 
-func (t *T411) search(searchReq searchReq) ([]Torrent, error) {
-
-	req, err := http.NewRequest("GET", searchReq.URL(), nil)
+// SearchTorrentsByTerms searches a torrent using terms and return a list of torrents
+// with a maximum of 10 torrents.
+func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language string) ([]Torrent, error) {
+	usedAPI, u, err := makeURL(title, season, episode, language)
 	if err != nil {
-		log.Printf("Error creating request to %s: %v", searchReq.URL(), err)
 		return nil, err
 	}
-
-	resp, err := t.do(req)
+	resp, err := t.doGet(u)
 	if err != nil {
-		log.Printf("Error executing request to %s: %v", searchReq.URL(), err)
 		return nil, err
 	}
+	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		log.Fatal("bad status code", resp.StatusCode)
-	}
-
-	data := struct {
+	torrents := struct {
 		Torrents []Torrent `json:"torrents"`
 	}{}
-
-	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	err = t.decode(&torrents, resp, usedAPI, u.RawQuery)
+	if err != nil {
 		return nil, err
 	}
-
-	return data.Torrents, nil
+	return torrents.Torrents, nil
 }
 
-// DownloadTorrent search the torrent corresponding to the title,
-// season and episode number, download it and return the location of the file.
-func (t *T411) DownloadTorrent(title string, season, episode int, language string) (string, error) {
-	req := searchReq{
-		Title:    title,
-		Season:   season,
-		Episode:  episode,
-		Language: language,
-	}
+// SortBySeeders sorts the given torrents by seeders.
+func (*T411) SortBySeeders(torrents []Torrent) {
+	sort.Sort(BySeeder{torrents})
+}
 
-	torrents, err := t.search(req)
+// DownloadTorrentByTerms searches the torrent corresponding to the title,
+// season, episode and language, downloads the one with the most seeders
+// and return the location of the file located in a temporary folder.
+// The language parameter must be one of those values: "english", "french",
+// "mute", "multi-fr", "multi-qb", "quebecker ", "vfstfr", "vostfr".
+func (t *T411) DownloadTorrentByTerms(title string, season, episode int, language string) (string, error) {
+	torrents, err := t.SearchTorrentsByTerms(title, season, episode, language)
 	if err != nil {
-		log.Printf("Error search for torrent: %v", err.Error())
 		return "", err
 	}
 
 	if len(torrents) < 1 {
-		return "", fmt.Errorf("torrent not found, %sS%02dE%02d", title, season, episode)
+		return "", fmt.Errorf("torrent %s S%02dE%02d not found", title, season, episode)
 	}
 
-	sort.Sort(BySeeder{torrents})
+	t.SortBySeeders(torrents)
 
 	r, err := t.download(torrents[len(torrents)-1].ID)
 	if err != nil {
@@ -187,13 +176,11 @@ func (t *T411) DownloadTorrent(title string, season, episode int, language strin
 
 	tmpfile, err := ioutil.TempFile("", fmt.Sprintf("%sS%02dE%02d", title, season, episode))
 	if err != nil {
-		log.Println(err)
 		return "", err
 	}
 	defer tmpfile.Close()
 
 	if _, err = io.Copy(tmpfile, r); err != nil {
-		log.Println(err)
 		return "", err
 	}
 
@@ -201,42 +188,19 @@ func (t *T411) DownloadTorrent(title string, season, episode int, language strin
 }
 
 func (t *T411) download(ID string) (io.ReadCloser, error) {
-
 	u, err := url.Parse(fmt.Sprintf("%s/torrents/download/%s", t.baseURL, ID))
 	if err != nil {
-		log.Println("Error parsing url: ", err)
 		return nil, err
 	}
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
-		log.Println("Error creating downlaod request: ", err)
 		return nil, err
 	}
 
 	resp, err := t.do(req)
 	if err != nil {
-		log.Println("Error executing download request: ", err)
 		return nil, err
 	}
-
 	return resp.Body, err
 }
-
-//
-// func chooseTorrent(torrents []Torrent) (string, error) {
-// 	if len(torrents) < 1 {
-// 		return "", fmt.Errorf("no torrents to choose from")
-// 	}
-//
-// 	sort.Sort(sort.Reverse(BySeeder{torrents}))
-//
-// 	for i, torrent := range torrents {
-// 		fmt.Printf("%d %s\n", i+1, torrent.String())
-// 	}
-// 	fmt.Printf("Which torrent do you want ? (1-%d) : \n", len(torrents))
-// 	var index int
-// 	fmt.Scanf("%d", &index)
-//
-// 	return torrents[index-1].ID, nil
-// }

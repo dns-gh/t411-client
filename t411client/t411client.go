@@ -112,13 +112,11 @@ func (t *T411) do(req *http.Request) (*http.Response, error) {
 func (t *T411) doGet(u *url.URL) (*http.Response, error) {
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
-		log.Printf("error creating request for %s: %v", u.String(), err.Error())
 		return nil, err
 	}
 
 	resp, err := t.do(req)
 	if err != nil {
-		log.Printf("error making GET request %s: %v", u.String(), err.Error())
 		return nil, err
 	}
 	return resp, nil
