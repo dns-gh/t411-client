@@ -151,42 +151,6 @@ func (*T411) SortBySeeders(torrents []Torrent) {
 	sort.Sort(bySeeder{torrents})
 }
 
-// DownloadTorrentByTerms searches the torrent corresponding to the title,
-// season, episode and language, downloads the one with the most seeders
-// and return the location of the file located in a temporary folder.
-// The language parameter must be one of those values: "english", "french",
-// "mute", "multi-fr", "multi-qb", "quebecker ", "vfstfr", "vostfr".
-func (t *T411) DownloadTorrentByTerms(title string, season, episode int, language string) (string, error) {
-	torrents, err := t.SearchTorrentsByTerms(title, season, episode, language)
-	if err != nil {
-		return "", err
-	}
-
-	if len(torrents.Torrents) < 1 {
-		return "", fmt.Errorf("torrent %s S%02dE%02d not found", title, season, episode)
-	}
-
-	t.SortBySeeders(torrents.Torrents)
-
-	r, err := t.download(torrents.Torrents[len(torrents.Torrents)-1].ID)
-	if err != nil {
-		return "", err
-	}
-	defer r.Close()
-
-	tmpfile, err := ioutil.TempFile("", fmt.Sprintf("%sS%02dE%02d", title, season, episode))
-	if err != nil {
-		return "", err
-	}
-	defer tmpfile.Close()
-
-	if _, err = io.Copy(tmpfile, r); err != nil {
-		return "", err
-	}
-
-	return tmpfile.Name(), nil
-}
-
 func (t *T411) download(ID string) (io.ReadCloser, error) {
 	u, err := url.Parse(fmt.Sprintf("%s/torrents/download/%s", t.baseURL, ID))
 	if err != nil {
@@ -203,4 +167,46 @@ func (t *T411) download(ID string) (io.ReadCloser, error) {
 		return nil, err
 	}
 	return resp.Body, err
+}
+
+// DownloadTorrentByID downloads the torrent of id 'id' into a temporary
+// filename begining with 'prefix' and returns the complete temporary filename
+// on success.
+func (t *T411) DownloadTorrentByID(id, prefix string) (string, error) {
+	r, err := t.download(id)
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	tmpfile, err := ioutil.TempFile("", prefix)
+	if err != nil {
+		return "", err
+	}
+	defer tmpfile.Close()
+
+	if _, err = io.Copy(tmpfile, r); err != nil {
+		return "", err
+	}
+
+	return tmpfile.Name(), nil
+}
+
+// DownloadTorrentByTerms searches the torrent corresponding to the title,
+// season, episode and language, downloads the one with the most seeders
+// and return the location of the file located in a temporary folder.
+// The language parameter must be one of those values: "english", "french",
+// "mute", "multi-fr", "multi-qb", "quebecker ", "vfstfr", "vostfr".
+func (t *T411) DownloadTorrentByTerms(title string, season, episode int, language string) (string, error) {
+	torrents, err := t.SearchTorrentsByTerms(title, season, episode, language)
+	if err != nil {
+		return "", err
+	}
+
+	if len(torrents.Torrents) < 1 {
+		return "", fmt.Errorf("torrent %s S%02dE%02d not found", title, season, episode)
+	}
+
+	t.SortBySeeders(torrents.Torrents)
+	return t.DownloadTorrentByID(torrents.Torrents[len(torrents.Torrents)-1].ID, fmt.Sprintf("%sS%02dE%02d", title, season, episode))
 }

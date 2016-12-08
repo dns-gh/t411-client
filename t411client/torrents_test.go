@@ -77,6 +77,21 @@ func (s *MySuite) TestSearchTorrentsSortingBySeeders(c *C) {
 	}
 }
 
+func (s *MySuite) TestDownloadTorrentByID(c *C) {
+	t411, _, _ := createT411Client(c)
+	torrents, err := t411.SearchTorrentsByTerms("vikings", 1, 1, "")
+	c.Assert(err, IsNil)
+	torrentsList := torrents.Torrents
+	c.Assert(torrentsList, Not(HasLen), 0)
+	path, err := t411.DownloadTorrentByID(torrentsList[0].ID, "test-prefix")
+	c.Assert(err, IsNil)
+	defer func() {
+		c.Assert(os.Remove(path), IsNil)
+	}()
+	c.Assert(path, Not(HasLen), 0)
+	c.Assert(strings.Contains(path, "test-prefix"), Equals, true)
+}
+
 func (s *MySuite) TestDownloadTorrentByTerms(c *C) {
 	t411, _, _ := createT411Client(c)
 	path, err := t411.DownloadTorrentByTerms("vikings", 1, 1, "")
