@@ -35,33 +35,42 @@ type Torrent struct {
 	Privacy        string `json:"privacy"`
 }
 
-// Torrents represents an array of torrents. Mainly used for sorting.
-type Torrents []Torrent
+// Torrents represents the torrents data.
+type Torrents struct {
+	Query    string    `json:"query"`
+	Total    string    `json:"total"`
+	Offset   int       `json:"offset"`
+	Limit    int       `json:"limit"`
+	Torrents []Torrent `json:"torrents"`
+}
 
 func (t *Torrent) String() string {
 	return fmt.Sprintf("%s - %s (s:%s, l:%s)", t.ID, t.Name, t.Seeders, t.Leechers)
 }
 
-// BySeeder implements sort.Interface by providing Less and using the Len and
+// used for sorting
+type torrentsList []Torrent
+
+// bySeeder implements sort.Interface by providing Less and using the Len and
 // Swap methods of the embedded Torrents value.
-type BySeeder struct {
-	Torrents
+type bySeeder struct {
+	torrentsList
 }
 
 // Less implements the sort.Interface
-func (s BySeeder) Less(i, j int) bool {
-	seederI, _ := strconv.Atoi(s.Torrents[i].Seeders)
-	seederJ, _ := strconv.Atoi(s.Torrents[j].Seeders)
+func (s bySeeder) Less(i, j int) bool {
+	seederI, _ := strconv.Atoi(s.torrentsList[i].Seeders)
+	seederJ, _ := strconv.Atoi(s.torrentsList[j].Seeders)
 	return seederI < seederJ
 }
 
 // Len implements the sort.Interface
-func (t Torrents) Len() int {
+func (t torrentsList) Len() int {
 	return len(t)
 }
 
 // Swap implements the sort.Interface
-func (t Torrents) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
+func (t torrentsList) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
 
 // T411 search API is quite strange to use. see https://api.t411.li/
 // they use 'terms' to allow search by category.
@@ -94,13 +103,6 @@ func init() {
 	}
 }
 
-type searchReq struct {
-	Title    string
-	Season   int
-	Episode  int
-	Language string
-}
-
 // URL returns the url of the search request
 func makeURL(title string, season, episode int, language string) (string, *url.URL, error) {
 	usedAPI := "/torrents/search/"
@@ -125,7 +127,7 @@ func makeURL(title string, season, episode int, language string) (string, *url.U
 
 // SearchTorrentsByTerms searches a torrent using terms and return a list of torrents
 // with a maximum of 10 torrents.
-func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language string) ([]Torrent, error) {
+func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language string) (*Torrents, error) {
 	usedAPI, u, err := makeURL(title, season, episode, language)
 	if err != nil {
 		return nil, err
@@ -136,19 +138,17 @@ func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language
 	}
 	defer resp.Body.Close()
 
-	torrents := struct {
-		Torrents []Torrent `json:"torrents"`
-	}{}
-	err = t.decode(&torrents, resp, usedAPI, u.RawQuery)
+	torrents := &Torrents{}
+	err = t.decode(torrents, resp, usedAPI, u.RawQuery)
 	if err != nil {
 		return nil, err
 	}
-	return torrents.Torrents, nil
+	return torrents, nil
 }
 
 // SortBySeeders sorts the given torrents by seeders.
 func (*T411) SortBySeeders(torrents []Torrent) {
-	sort.Sort(BySeeder{torrents})
+	sort.Sort(bySeeder{torrents})
 }
 
 // DownloadTorrentByTerms searches the torrent corresponding to the title,
@@ -162,13 +162,13 @@ func (t *T411) DownloadTorrentByTerms(title string, season, episode int, languag
 		return "", err
 	}
 
-	if len(torrents) < 1 {
+	if len(torrents.Torrents) < 1 {
 		return "", fmt.Errorf("torrent %s S%02dE%02d not found", title, season, episode)
 	}
 
-	t.SortBySeeders(torrents)
+	t.SortBySeeders(torrents.Torrents)
 
-	r, err := t.download(torrents[len(torrents)-1].ID)
+	r, err := t.download(torrents.Torrents[len(torrents.Torrents)-1].ID)
 	if err != nil {
 		return "", err
 	}

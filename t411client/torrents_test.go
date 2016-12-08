@@ -36,35 +36,39 @@ func (s *MySuite) TestMakeURL(c *C) {
 	c.Assert(u.String(), Equals, expected)
 }
 
+func checkTorrents(c *C, torrents *Torrents, query, total string, offset, limit int) {
+	c.Assert(torrents.Total, Equals, total)
+	c.Assert(torrents.Offset, Equals, offset)
+	c.Assert(torrents.Limit, Equals, limit)
+	c.Assert(torrents.Torrents, Not(HasLen), 0)
+	c.Assert(len(torrents.Torrents) <= 10, Equals, true)
+	for _, v := range torrents.Torrents {
+		c.Assert(strings.Contains(strings.ToLower(v.String()), query), Equals, true)
+	}
+}
+
 func (s *MySuite) TestSearchTorrentsByTerms(c *C) {
 	t411, _, _ := createT411Client(c)
 	torrents, err := t411.SearchTorrentsByTerms("vikings", 1, 1, "")
 	c.Assert(err, IsNil)
-	c.Assert(torrents, Not(HasLen), 0)
-	c.Assert(len(torrents) <= 10, Equals, true)
-	for _, v := range torrents {
-		c.Assert(strings.Contains(strings.ToLower(v.String()), "viking"), Equals, true)
-	}
+	checkTorrents(c, torrents, "viking", "12", 0, 10)
 
 	torrents, err = t411.SearchTorrentsByTerms("vikings", 1, 1, "french")
 	c.Assert(err, IsNil)
-	c.Assert(torrents, Not(HasLen), 0)
-	c.Assert(len(torrents) <= 10, Equals, true)
-	for _, v := range torrents {
-		c.Assert(strings.Contains(strings.ToLower(v.String()), "viking"), Equals, true)
-	}
+	checkTorrents(c, torrents, "viking", "4", 0, 10)
 }
 
 func (s *MySuite) TestSearchTorrentsSortingBySeeders(c *C) {
 	t411, _, _ := createT411Client(c)
 	torrents, err := t411.SearchTorrentsByTerms("vikings", 1, 1, "")
 	c.Assert(err, IsNil)
-	c.Assert(torrents, Not(HasLen), 0)
-	t411.SortBySeeders(torrents)
-	c.Assert(torrents, Not(HasLen), 0)
-	current, err := strconv.Atoi(torrents[0].Seeders)
+	torrentsList := torrents.Torrents
+	c.Assert(torrentsList, Not(HasLen), 0)
+	t411.SortBySeeders(torrentsList)
+	c.Assert(torrentsList, Not(HasLen), 0)
+	current, err := strconv.Atoi(torrentsList[0].Seeders)
 	c.Assert(err, IsNil)
-	for _, v := range torrents {
+	for _, v := range torrentsList {
 		c.Assert(strings.Contains(strings.ToLower(v.String()), "viking"), Equals, true)
 		temp, err := strconv.Atoi(v.Seeders)
 		c.Assert(err, IsNil)
