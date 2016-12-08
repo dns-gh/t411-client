@@ -10,6 +10,10 @@ func (s *MySuite) TestUsersProfile(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(user.Username, Equals, username)
 
+	user, err = t411.GetOwnProfile()
+	c.Assert(err, IsNil)
+	c.Assert(user.Username, Equals, username)
+
 	ratio, err := user.GetRatio()
 	c.Assert(err, IsNil)
 	c.Assert(ratio > 0, Equals, true)
