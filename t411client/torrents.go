@@ -39,8 +39,8 @@ type Torrent struct {
 type Torrents struct {
 	Query    string    `json:"query"`
 	Total    string    `json:"total"`
-	Offset   int       `json:"offset"`
-	Limit    int       `json:"limit"`
+	Offset   string    `json:"offset"`
+	Limit    string    `json:"limit"`
 	Torrents []Torrent `json:"torrents"`
 }
 
@@ -104,7 +104,7 @@ func init() {
 }
 
 // URL returns the url of the search request
-func makeURL(title string, season, episode int, language string) (string, *url.URL, error) {
+func makeURL(title string, season, episode int, language string, offset, limit int) (string, *url.URL, error) {
 	usedAPI := "/torrents/search/"
 	u, err := url.Parse(fmt.Sprintf("%s%s%s", t411BaseURL, usedAPI, title))
 	if err != nil {
@@ -119,7 +119,20 @@ func makeURL(title string, season, episode int, language string) (string, *url.U
 	}
 	if ID, ok := languageMap[language]; ok {
 		q.Add(fmt.Sprintf("term[%d][]", catLanguageID), fmt.Sprintf("%d", ID))
-
+	}
+	// there is a bug in the t411 api: if we do request with limit and/or offset parameters
+	// corresponding response fields 'limit' and/or 'offset will be of type string. If not,
+	// they will be of type int. So we always make requests with those parameters and use the
+	// default values of limit/offset parameters if need be.
+	if offset >= 0 {
+		q.Add("offset", fmt.Sprintf("%d", offset))
+	} else {
+		q.Add("offset", fmt.Sprintf("%d", 0))
+	}
+	if limit > 0 {
+		q.Add("limit", fmt.Sprintf("%d", limit))
+	} else {
+		q.Add("limit", fmt.Sprintf("%d", 10))
 	}
 	u.RawQuery = q.Encode()
 	return usedAPI, u, nil
@@ -127,8 +140,8 @@ func makeURL(title string, season, episode int, language string) (string, *url.U
 
 // SearchTorrentsByTerms searches a torrent using terms and return a list of torrents
 // with a maximum of 10 torrents.
-func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language string) (*Torrents, error) {
-	usedAPI, u, err := makeURL(title, season, episode, language)
+func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language string, offset, limit int) (*Torrents, error) {
+	usedAPI, u, err := makeURL(title, season, episode, language, offset, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -195,10 +208,11 @@ func (t *T411) DownloadTorrentByID(id, prefix string) (string, error) {
 // DownloadTorrentByTerms searches the torrent corresponding to the title,
 // season, episode and language, downloads the one with the most seeders
 // and return the location of the file located in a temporary folder.
-// The language parameter must be one of those values: "english", "french",
+// Note: the search is done with an offset of 0 and a limit of 10 results per search.
+// Note: the language parameter must be one of those values: "english", "french",
 // "mute", "multi-fr", "multi-qb", "quebecker ", "vfstfr", "vostfr".
 func (t *T411) DownloadTorrentByTerms(title string, season, episode int, language string) (string, error) {
-	torrents, err := t.SearchTorrentsByTerms(title, season, episode, language)
+	torrents, err := t.SearchTorrentsByTerms(title, season, episode, language, 0, 0)
 	if err != nil {
 		return "", err
 	}
