@@ -182,10 +182,6 @@ func makeURL(title string, season, episode int, language, quality string, offset
 	addEpisode(v, episode)
 	addLanguage(v, language)
 	addQuality(v, quality)
-	// there is a bug in the t411 api: if we do request with limit and/or offset parameters
-	// corresponding response fields 'limit' and/or 'offset will be of type string. If not,
-	// they will be of type int. So we always make requests with those parameters and use the
-	// default values of limit/offset parameters if need be.
 	addOffset(v, offset)
 	addLimit(v, limit)
 	u.RawQuery = v.Encode()
