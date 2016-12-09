@@ -219,6 +219,28 @@ func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language
 	return torrents, nil
 }
 
+// SearchAllTorrentByTerms does the same as SearchTorrentByTerms but get all the possible torrents
+// for the specific search in a single torrent slice.
+func (t *T411) SearchAllTorrentByTerms(title string, season, episode int, language, quality string) (*Torrents, error) {
+	torrents, err := t.SearchTorrentsByTerms(title, season, episode, language, quality, 0, 100)
+	if err != nil {
+		return nil, err
+	}
+	total, err := strconv.Atoi(torrents.Total)
+	if err != nil {
+		return nil, err
+	}
+	if len(torrents.Torrents) == total {
+		return torrents, nil
+	}
+
+	torrents, err = t.SearchTorrentsByTerms(title, season, episode, language, quality, 0, total)
+	if err != nil {
+		return nil, err
+	}
+	return torrents, nil
+}
+
 // TorrentDetails represents the torrent detail data.
 type TorrentDetails struct {
 	ID            string            `json:"id"`
@@ -311,10 +333,6 @@ func (t *T411) DownloadTorrentByTerms(title string, season, episode int, languag
 	torrents, err := t.SearchTorrentsByTerms(title, season, episode, language, quality, 0, 0)
 	if err != nil {
 		return "", err
-	}
-
-	if len(torrents.Torrents) < 1 {
-		return "", fmt.Errorf("torrent %s S%02dE%02d not found", title, season, episode)
 	}
 
 	t.SortBySeeders(torrents.Torrents)

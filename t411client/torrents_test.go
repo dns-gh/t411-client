@@ -93,6 +93,17 @@ func (s *MySuite) TestSearchTorrentsByTerms(c *C) {
 	checkTorrents(c, torrents, "avatar", "94", 0, 10)
 }
 
+func (s *MySuite) TestSearchAllTorrents(c *C) {
+	t411, _, _ := createT411Client(c)
+	torrents, err := t411.SearchAllTorrentByTerms("vikings", -1, -1, "", "")
+	c.Assert(err, IsNil)
+	c.Assert(torrents.Total, Equals, strconv.Itoa(len(torrents.Torrents)))
+
+	torrents, err = t411.SearchTorrentsByTerms("avatar", -1, -1, "", "DVDrip [Rip depuis DVD-R]", 0, 0)
+	c.Assert(err, IsNil)
+	checkTorrents(c, torrents, "avatar", "94", 0, 10)
+}
+
 func (s *MySuite) TestSearchTorrentsByTermsComplete(c *C) {
 	t411, _, _ := createT411Client(c)
 	torrents, err := t411.SearchTorrentsByTerms("stargate", 1, 0, "", "", 0, 0)
