@@ -124,12 +124,13 @@ func (t *T411) doGet(u *url.URL) (*http.Response, error) {
 }
 
 // fixJSONResponse fixes the json response for /torrents/search/ api endpoint for the fields
-// offset, limit and total.
+// offset, limit, total and owner.
 func fixJSONResponse(bytes []byte) []byte {
 	str := string(bytes)
 	str = strings.Replace(str, fmt.Sprintf("%q:0", "offset"), fmt.Sprintf("%q:%q", "offset", "0"), 1)
 	str = strings.Replace(str, fmt.Sprintf("%q:10", "limit"), fmt.Sprintf("%q:%q", "limit", "10"), 1)
 	str = strings.Replace(str, fmt.Sprintf("%q:0", "total"), fmt.Sprintf("%q:%q", "total", "0"), 1)
+	str = strings.Replace(str, fmt.Sprintf("%q:0", "owner"), fmt.Sprintf("%q:%q", "owner", "0"), 1)
 	return []byte(str)
 }
 

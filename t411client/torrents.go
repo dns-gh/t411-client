@@ -12,7 +12,11 @@ import (
 )
 
 var (
-	errEOF = errors.New("no more torrents to find")
+	errEOF             = errors.New("no more torrents to find")
+	errTorrentNotFound = &errAPI{
+		Code: 301,
+		Text: "Torrent not found",
+	}
 )
 
 // Torrent represents a torrent as return by the t411 API
@@ -213,6 +217,42 @@ func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language
 		return nil, err
 	}
 	return torrents, nil
+}
+
+// TorrentDetails represents the torrent detail data.
+type TorrentDetails struct {
+	ID            string            `json:"id"`
+	Name          string            `json:"name"`
+	Category      string            `json:"category"`
+	Categoryname  string            `json:"categoryname"`
+	Categoryimage string            `json:"categoryimage"`
+	Rewritename   string            `json:"rewritename"`
+	Owner         string            `json:"owner"`
+	Username      string            `json:"username"`
+	Privacy       string            `json:"privacy"`
+	Description   string            `json:"description"`
+	Terms         map[string]string `json:"terms"`
+}
+
+// TorrentsDetails returns the details of a torrent from a torrent 'id'.
+func (t *T411) TorrentsDetails(id string) (*TorrentDetails, error) {
+	usedAPI := "/torrents/details/"
+	u, err := url.Parse(fmt.Sprintf("%s%s%s", t411BaseURL, usedAPI, id))
+	if err != nil {
+		return nil, err
+	}
+	resp, err := t.doGet(u)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	details := &TorrentDetails{}
+	err = t.decode(details, resp, usedAPI, u.RawQuery)
+	if err != nil {
+		return nil, err
+	}
+	return details, nil
 }
 
 // SortBySeeders sorts the given torrents by seeders.

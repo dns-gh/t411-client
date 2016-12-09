@@ -160,3 +160,40 @@ func (s *MySuite) TestDownloadTorrentByTerms(c *C) {
 	c.Assert(path, Not(HasLen), 0)
 	c.Assert(strings.Contains(path, "vikingsS01E01"), Equals, true)
 }
+
+func (s *MySuite) TestTorrentsDetails(c *C) {
+	t411, _, _ := createT411Client(c)
+	torrents, err := t411.SearchTorrentsByTerms("vikings", 1, 1, "", "", 0, 0)
+	c.Assert(err, IsNil)
+	torrentsList := torrents.Torrents
+	c.Assert(torrentsList, Not(HasLen), 0)
+	details, err := t411.TorrentsDetails(torrentsList[0].ID)
+	c.Assert(err, IsNil)
+	expected := &TorrentDetails{
+		ID:            "4831500",
+		Name:          "Vikings.S01E01.HDTV.x264.2HD.VOSTFR",
+		Category:      "433",
+		Categoryname:  "Série TV",
+		Categoryimage: "video-tv-series",
+		Rewritename:   "vikings-s01e01-hdtv-x264-2hd-vostfr",
+		Owner:         "97237274",
+		Username:      "Niko0306",
+		Privacy:       "normal",
+		Terms: map[string]string{
+			"Vidéo - Langue":    "VOSTFR",
+			"Vidéo - Qualité":   "TVripHD 720 [Rip HD depuis Source Tv HD]",
+			"Vidéo - Système":   "PC/Platine/Lecteur Multimédia/etc",
+			"Vidéo - Type":      "2D (Standard)",
+			"Vidéo - Genre":     "Historique",
+			"SérieTV - Episode": "Episode 01",
+			"SérieTV - Saison":  "Saison 01",
+			"Vidéo - Format":    "NTSC (23.9, 29.9 ou 60 Img/s)",
+		},
+	}
+	// skip description for a more consice test
+	expected.Description = details.Description
+	c.Assert(details, DeepEquals, expected)
+
+	_, err = t411.TorrentsDetails("1")
+	c.Assert(err, DeepEquals, errTorrentNotFound)
+}
