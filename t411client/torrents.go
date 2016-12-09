@@ -80,11 +80,14 @@ var (
 	catSeasonID       = 45
 	catEpisodeID      = 46
 	catLanguageID     = 51
+	catQualityID      = 7
 	episodeNbrIDStart = 936
 	seasonNbrIDStart  = 968
 	seasonNbrID       = map[int]int{}
 	episodeNbrID      = map[int]int{}
-	languageMap       = map[string]int{
+	// LanguageMap is a map giving you the keys corresponding
+	// to every available language filter
+	LanguageMap = map[string]int{
 		"english":    1209,
 		"french":     1210,
 		"mute":       1211,
@@ -94,6 +97,30 @@ var (
 		"vfstfr":     1215,
 		"vostfr":     1216,
 		"voasta":     1217,
+	}
+	// QualityMap is a map giving you the keys corresponding
+	// to every available quality filter
+	QualityMap = map[string]int{
+		"BDrip/BRrip [Rip SD (non HD) depuis Bluray ou HDrip": 8,
+		"Bluray 4K [Full ou Remux]":                           1171,
+		"Bluray [Full]":                                       17,
+		"Bluray [Remux]":                                      1220,
+		"DVD-R 5 [DVD < 4.37GB]":                              13,
+		"DVD-R 9 [DVD > 4.37GB]":                              14,
+		"DVDrip [Rip depuis DVD-R]":                           10,
+		"HDrip 1080 [Rip HD depuis Bluray]":                   16,
+		"HDrip 4k [Rip HD 4k depuis source 4k]":               1219,
+		"HDrip 720 [Rip HD depuis Bluray]":                    15,
+		"TVrip [Rip SD (non HD) depuis Source Tv HD/SD]":      11,
+		"TVripHD 1080 [Rip HD depuis Source Tv HD]":           1162,
+		"TvripHD 4k [Rip HD 4k depuis Source Tv 4k]":          1235,
+		"TVripHD 720 [Rip HD depuis Source Tv HD]":            12,
+		"VCD/SVCD/VHSrip":                                     18,
+		"Web-Dl":                                              1233,
+		"Web-Dl 1080":                                         1174,
+		"Web-Dl 4K":                                           1182,
+		"Web-Dl 720":                                          1175,
+		"WEBrip":                                              19,
 	}
 )
 
@@ -120,8 +147,14 @@ func addSeason(v url.Values, season int) {
 }
 
 func addLanguage(v url.Values, language string) {
-	if ID, ok := languageMap[language]; ok {
+	if ID, ok := LanguageMap[language]; ok {
 		v.Add(fmt.Sprintf("term[%d][]", catLanguageID), fmt.Sprintf("%d", ID))
+	}
+}
+
+func addQuality(v url.Values, quality string) {
+	if ID, ok := QualityMap[quality]; ok {
+		v.Add(fmt.Sprintf("term[%d][]", catQualityID), fmt.Sprintf("%d", ID))
 	}
 }
 
@@ -138,7 +171,7 @@ func addLimit(v url.Values, limit int) {
 }
 
 // URL returns the url of the search request
-func makeURL(title string, season, episode int, language string, offset, limit int) (string, *url.URL, error) {
+func makeURL(title string, season, episode int, language, quality string, offset, limit int) (string, *url.URL, error) {
 	usedAPI := "/torrents/search/"
 	u, err := url.Parse(fmt.Sprintf("%s%s%s", t411BaseURL, usedAPI, title))
 	if err != nil {
@@ -148,6 +181,7 @@ func makeURL(title string, season, episode int, language string, offset, limit i
 	addSeason(v, season)
 	addEpisode(v, episode)
 	addLanguage(v, language)
+	addQuality(v, quality)
 	// there is a bug in the t411 api: if we do request with limit and/or offset parameters
 	// corresponding response fields 'limit' and/or 'offset will be of type string. If not,
 	// they will be of type int. So we always make requests with those parameters and use the
@@ -164,10 +198,10 @@ func makeURL(title string, season, episode int, language string, offset, limit i
 // For 'season' and 'episode', a value of 0 means respectively "complete/integral tv show" and "complete season",
 // Note that for the complete tv show, both 'season' and 'episode' must be set to 0.
 // 'season' available range is from 0 to 30 and 'episode' range is from 0 to 60.
-// The language parameter must be one of those values: "english", "french",
-// "mute", "multi-fr", "multi-qb", "quebecker ", "vfstfr", "vostfr".
-func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language string, offset, limit int) (*Torrents, error) {
-	usedAPI, u, err := makeURL(title, season, episode, language, offset, limit)
+// The 'language' parameter must be one the values of the LanguageMap variable.
+// The 'quality' parameter must be one the values of the QualityMap variable.
+func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language, quality string, offset, limit int) (*Torrents, error) {
+	usedAPI, u, err := makeURL(title, season, episode, language, quality, offset, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -234,11 +268,11 @@ func (t *T411) DownloadTorrentByID(id, prefix string) (string, error) {
 // DownloadTorrentByTerms searches the torrent corresponding to the title,
 // season, episode and language, downloads the one with the most seeders
 // and return the location of the file located in a temporary folder.
-// Note: the search is done with an offset of 0 and a limit of 10 results per search.
-// Note: the language parameter must be one of those values: "english", "french",
-// "mute", "multi-fr", "multi-qb", "quebecker ", "vfstfr", "vostfr".
-func (t *T411) DownloadTorrentByTerms(title string, season, episode int, language string) (string, error) {
-	torrents, err := t.SearchTorrentsByTerms(title, season, episode, language, 0, 0)
+// Note: the search is done with an offset of 0 and a limit of 10 results per search by default.
+// Note: the 'language' parameter must be one of the values of LanguageMap variable.
+// Note: the 'quality' parameter must be one of the values of QualityMap variable.
+func (t *T411) DownloadTorrentByTerms(title string, season, episode int, language, quality string) (string, error) {
+	torrents, err := t.SearchTorrentsByTerms(title, season, episode, language, quality, 0, 0)
 	if err != nil {
 		return "", err
 	}
