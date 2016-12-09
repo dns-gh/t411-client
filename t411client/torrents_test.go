@@ -14,7 +14,7 @@ func (s *MySuite) TestMakeURL(c *C) {
 	usedAPI, u, err := makeURL("breaking bad", 1, 1, "", 0, 0)
 	c.Assert(err, IsNil)
 	c.Assert(usedAPI, Equals, "/torrents/search/")
-	expected := t411BaseURL + "/torrents/search/breaking%20bad?limit=10&offset=0&term%5B45%5D%5B%5D=968&term%5B46%5D%5B%5D=937"
+	expected := t411BaseURL + "/torrents/search/breaking%20bad?offset=0&term%5B45%5D%5B%5D=968&term%5B46%5D%5B%5D=937"
 	c.Assert(u.String(), Equals, expected)
 
 	usedAPI, u, err = makeURL("breaking bad", 1, 1, "", 1, 1)
@@ -26,19 +26,19 @@ func (s *MySuite) TestMakeURL(c *C) {
 	usedAPI, u, err = makeURL("vikings", 1, 1, "", 0, 0)
 	c.Assert(err, IsNil)
 	c.Assert(usedAPI, Equals, "/torrents/search/")
-	expected = t411BaseURL + "/torrents/search/vikings?limit=10&offset=0&term%5B45%5D%5B%5D=968&term%5B46%5D%5B%5D=937"
+	expected = t411BaseURL + "/torrents/search/vikings?offset=0&term%5B45%5D%5B%5D=968&term%5B46%5D%5B%5D=937"
 	c.Assert(u.String(), Equals, expected)
 
 	usedAPI, u, err = makeURL("vikings", 2, 3, "", 0, 0)
 	c.Assert(err, IsNil)
 	c.Assert(usedAPI, Equals, "/torrents/search/")
-	expected = t411BaseURL + "/torrents/search/vikings?limit=10&offset=0&term%5B45%5D%5B%5D=969&term%5B46%5D%5B%5D=939"
+	expected = t411BaseURL + "/torrents/search/vikings?offset=0&term%5B45%5D%5B%5D=969&term%5B46%5D%5B%5D=939"
 	c.Assert(u.String(), Equals, expected)
 
 	usedAPI, u, err = makeURL("vikings", 2, 3, "english", 0, 0)
 	c.Assert(err, IsNil)
 	c.Assert(usedAPI, Equals, "/torrents/search/")
-	expected = t411BaseURL + "/torrents/search/vikings?limit=10&offset=0&term%5B45%5D%5B%5D=969&term%5B46%5D%5B%5D=939&term%5B51%5D%5B%5D=1209"
+	expected = t411BaseURL + "/torrents/search/vikings?offset=0&term%5B45%5D%5B%5D=969&term%5B46%5D%5B%5D=939&term%5B51%5D%5B%5D=1209"
 	c.Assert(u.String(), Equals, expected)
 }
 

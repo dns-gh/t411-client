@@ -128,16 +128,12 @@ func addLanguage(v url.Values, language string) {
 func addOffset(v url.Values, offset int) {
 	if offset >= 0 {
 		v.Add("offset", fmt.Sprintf("%d", offset))
-	} else {
-		v.Add("offset", fmt.Sprintf("%d", 0))
 	}
 }
 
 func addLimit(v url.Values, limit int) {
 	if limit > 0 {
 		v.Add("limit", fmt.Sprintf("%d", limit))
-	} else {
-		v.Add("limit", fmt.Sprintf("%d", 10))
 	}
 }
 

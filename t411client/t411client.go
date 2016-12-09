@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -122,6 +123,16 @@ func (t *T411) doGet(u *url.URL) (*http.Response, error) {
 	return resp, nil
 }
 
+// fixJSONResponse fixes the json response for /torrents/search/ api endpoint for the fields
+// offset, limit and total.
+func fixJSONResponse(bytes []byte) []byte {
+	str := string(bytes)
+	str = strings.Replace(str, fmt.Sprintf("%q:0", "offset"), fmt.Sprintf("%q:%q", "offset", "0"), 1)
+	str = strings.Replace(str, fmt.Sprintf("%q:10", "limit"), fmt.Sprintf("%q:%q", "limit", "10"), 1)
+	str = strings.Replace(str, fmt.Sprintf("%q:0", "total"), fmt.Sprintf("%q:%q", "total", "0"), 1)
+	return []byte(str)
+}
+
 func (t *T411) decode(data interface{}, resp *http.Response, usedAPI, query string) error {
 	// resp.ContentLength not set properly from server side ?
 	buf := bytes.NewBuffer(make([]byte, 0 /*, resp.ContentLength */))
@@ -142,7 +153,7 @@ func (t *T411) decode(data interface{}, resp *http.Response, usedAPI, query stri
 	if len(errorAPI.Text) != 0 {
 		return errorAPI
 	}
-
+	bytes = fixJSONResponse(bytes)
 	if err = json.Unmarshal(bytes, data); err != nil {
 		log.Printf("Error decoding using '%s' API for '%s' query :%v", usedAPI, query, err)
 		return err
