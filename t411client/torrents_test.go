@@ -43,7 +43,10 @@ func (s *MySuite) TestMakeURL(c *C) {
 }
 
 func checkTorrents(c *C, torrents *Torrents, query, total string, offset, limit int) {
-	c.Assert(torrents.Total, Equals, total)
+	if len(total) != 0 {
+		// only check this field when wanted. Too much variations sometimes due to real time uploading.
+		c.Assert(torrents.Total, Equals, total)
+	}
 	c.Assert(torrents.Offset, Equals, strconv.Itoa(offset))
 	c.Assert(torrents.Limit, Equals, strconv.Itoa(limit))
 	c.Assert(torrents.Torrents, Not(HasLen), 0)
@@ -71,12 +74,38 @@ func (s *MySuite) TestSearchTorrentsByTerms(c *C) {
 	torrents, err = t411.SearchTorrentsByTerms("vikings", -1, -1, "", 0, 0)
 	c.Assert(err, IsNil)
 	c.Assert(torrents.Torrents, HasLen, 10)
-	checkTorrents(c, torrents, "viking", "940", 0, 10)
+	checkTorrents(c, torrents, "viking", "", 0, 10)
 
-	torrents, err = t411.SearchTorrentsByTerms("vikings", -1, -1, "", 0, 940)
+	// checks it's working when asking a large amount of torrent
+	torrents, err = t411.SearchTorrentsByTerms("vikings", -1, -1, "", 0, 500)
 	c.Assert(err, IsNil)
-	c.Assert(torrents.Torrents, HasLen, 940)
-	checkTorrents(c, torrents, "viking", "940", 0, 940)
+	c.Assert(torrents.Torrents, HasLen, 500)
+	checkTorrents(c, torrents, "viking", "", 0, 500)
+}
+
+func (s *MySuite) TestSearchTorrentsByTermsComplete(c *C) {
+	t411, _, _ := createT411Client(c)
+	torrents, err := t411.SearchTorrentsByTerms("stargate", 1, 0, "", 0, 0)
+	c.Assert(err, IsNil)
+	seasonComplete := false
+	for _, v := range torrents.Torrents {
+		c.Assert(strings.Contains(strings.ToLower(v.String()), "stargate"), Equals, true)
+		if strings.Contains(strings.ToLower(v.String()), ".s01.") {
+			seasonComplete = true
+		}
+	}
+	c.Assert(seasonComplete, Equals, true)
+
+	torrents, err = t411.SearchTorrentsByTerms("stargate", 0, 0, "", 0, 0)
+	c.Assert(err, IsNil)
+	showComplete := false
+	for _, v := range torrents.Torrents {
+		c.Assert(strings.Contains(strings.ToLower(v.String()), "stargate"), Equals, true)
+		if strings.Contains(strings.ToLower(v.String()), "integrale") {
+			showComplete = true
+		}
+	}
+	c.Assert(showComplete, Equals, true)
 }
 
 func (s *MySuite) TestSearchTorrentsSortingBySeeders(c *C) {

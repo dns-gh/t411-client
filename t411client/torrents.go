@@ -77,12 +77,14 @@ func (t torrentsList) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
 // In this case we are only interested in category Season and Episode number.
 // Season and Episode number also have specific ID. init method creates the mapping
 var (
-	catSeasonID   = 45
-	catEpisodeID  = 46
-	catLanguageID = 51
-	seasonNbrID   = map[int]int{}
-	episodeNbrID  = map[int]int{}
-	languageMap   = map[string]int{
+	catSeasonID       = 45
+	catEpisodeID      = 46
+	catLanguageID     = 51
+	episodeNbrIDStart = 936
+	seasonNbrIDStart  = 968
+	seasonNbrID       = map[int]int{}
+	episodeNbrID      = map[int]int{}
+	languageMap       = map[string]int{
 		"english":    1209,
 		"french":     1210,
 		"mute":       1211,
@@ -91,26 +93,28 @@ var (
 		"quebecker ": 1214,
 		"vfstfr":     1215,
 		"vostfr":     1216,
+		"voasta":     1217,
 	}
 )
 
 func init() {
 	for i := 0; i < 30; i++ {
-		seasonNbrID[i+1] = 968 + i
+		seasonNbrID[i+1] = seasonNbrIDStart + i
 	}
-	for i := 0; i < 60; i++ {
-		episodeNbrID[i+1] = 937 + i
+	seasonNbrID[0] = 998
+	for i := 0; i < 61; i++ {
+		episodeNbrID[i] = episodeNbrIDStart + i
 	}
 }
 
 func addEpisode(v url.Values, episode int) {
-	if episode > 0 {
+	if episode >= 0 {
 		v.Add(fmt.Sprintf("term[%d][]", catEpisodeID), fmt.Sprintf("%d", episodeNbrID[episode]))
 	}
 }
 
 func addSeason(v url.Values, season int) {
-	if season > 0 {
+	if season >= 0 {
 		v.Add(fmt.Sprintf("term[%d][]", catSeasonID), fmt.Sprintf("%d", seasonNbrID[season]))
 	}
 }
@@ -160,6 +164,12 @@ func makeURL(title string, season, episode int, language string, offset, limit i
 
 // SearchTorrentsByTerms searches a torrent using terms and return a list of torrents
 // with a maximum of 10 torrents by default.
+// The 'title' parameter is mandatory of course. All the others are optionals.
+// For 'season' and 'episode', a value of 0 means respectively "complete/integral tv show" and "complete season",
+// Note that for the complete tv show, both 'season' and 'episode' must be set to 0.
+// 'season' available range is from 0 to 30 and 'episode' range is from 0 to 60.
+// The language parameter must be one of those values: "english", "french",
+// "mute", "multi-fr", "multi-qb", "quebecker ", "vfstfr", "vostfr".
 func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language string, offset, limit int) (*Torrents, error) {
 	usedAPI, u, err := makeURL(title, season, episode, language, offset, limit)
 	if err != nil {
