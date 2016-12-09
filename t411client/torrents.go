@@ -103,6 +103,40 @@ func init() {
 	}
 }
 
+func addEpisode(v url.Values, episode int) {
+	if episode > 0 {
+		v.Add(fmt.Sprintf("term[%d][]", catEpisodeID), fmt.Sprintf("%d", episodeNbrID[episode]))
+	}
+}
+
+func addSeason(v url.Values, season int) {
+	if season > 0 {
+		v.Add(fmt.Sprintf("term[%d][]", catSeasonID), fmt.Sprintf("%d", seasonNbrID[season]))
+	}
+}
+
+func addLanguage(v url.Values, language string) {
+	if ID, ok := languageMap[language]; ok {
+		v.Add(fmt.Sprintf("term[%d][]", catLanguageID), fmt.Sprintf("%d", ID))
+	}
+}
+
+func addOffset(v url.Values, offset int) {
+	if offset >= 0 {
+		v.Add("offset", fmt.Sprintf("%d", offset))
+	} else {
+		v.Add("offset", fmt.Sprintf("%d", 0))
+	}
+}
+
+func addLimit(v url.Values, limit int) {
+	if limit > 0 {
+		v.Add("limit", fmt.Sprintf("%d", limit))
+	} else {
+		v.Add("limit", fmt.Sprintf("%d", 10))
+	}
+}
+
 // URL returns the url of the search request
 func makeURL(title string, season, episode int, language string, offset, limit int) (string, *url.URL, error) {
 	usedAPI := "/torrents/search/"
@@ -110,31 +144,17 @@ func makeURL(title string, season, episode int, language string, offset, limit i
 	if err != nil {
 		return usedAPI, nil, err
 	}
-	q := u.Query()
-	if season > 0 {
-		q.Add(fmt.Sprintf("term[%d][]", catSeasonID), fmt.Sprintf("%d", seasonNbrID[season]))
-	}
-	if episode > 0 {
-		q.Add(fmt.Sprintf("term[%d][]", catEpisodeID), fmt.Sprintf("%d", episodeNbrID[episode]))
-	}
-	if ID, ok := languageMap[language]; ok {
-		q.Add(fmt.Sprintf("term[%d][]", catLanguageID), fmt.Sprintf("%d", ID))
-	}
+	v := u.Query()
+	addSeason(v, season)
+	addEpisode(v, episode)
+	addLanguage(v, language)
 	// there is a bug in the t411 api: if we do request with limit and/or offset parameters
 	// corresponding response fields 'limit' and/or 'offset will be of type string. If not,
 	// they will be of type int. So we always make requests with those parameters and use the
 	// default values of limit/offset parameters if need be.
-	if offset >= 0 {
-		q.Add("offset", fmt.Sprintf("%d", offset))
-	} else {
-		q.Add("offset", fmt.Sprintf("%d", 0))
-	}
-	if limit > 0 {
-		q.Add("limit", fmt.Sprintf("%d", limit))
-	} else {
-		q.Add("limit", fmt.Sprintf("%d", 10))
-	}
-	u.RawQuery = q.Encode()
+	addOffset(v, offset)
+	addLimit(v, limit)
+	u.RawQuery = v.Encode()
 	return usedAPI, u, nil
 }
 
