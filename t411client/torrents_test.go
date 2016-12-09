@@ -47,7 +47,7 @@ func checkTorrents(c *C, torrents *Torrents, query, total string, offset, limit 
 	c.Assert(torrents.Offset, Equals, strconv.Itoa(offset))
 	c.Assert(torrents.Limit, Equals, strconv.Itoa(limit))
 	c.Assert(torrents.Torrents, Not(HasLen), 0)
-	c.Assert(len(torrents.Torrents) <= 10, Equals, true)
+	c.Assert(len(torrents.Torrents) <= limit, Equals, true)
 	for _, v := range torrents.Torrents {
 		c.Assert(strings.Contains(strings.ToLower(v.String()), query), Equals, true)
 	}
@@ -67,6 +67,16 @@ func (s *MySuite) TestSearchTorrentsByTerms(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(torrents.Torrents, HasLen, 10)
 	checkTorrents(c, torrents, "viking", "12", 1, 10)
+
+	torrents, err = t411.SearchTorrentsByTerms("vikings", -1, -1, "", 0, 0)
+	c.Assert(err, IsNil)
+	c.Assert(torrents.Torrents, HasLen, 10)
+	checkTorrents(c, torrents, "viking", "940", 0, 10)
+
+	torrents, err = t411.SearchTorrentsByTerms("vikings", -1, -1, "", 0, 940)
+	c.Assert(err, IsNil)
+	c.Assert(torrents.Torrents, HasLen, 940)
+	checkTorrents(c, torrents, "viking", "940", 0, 940)
 }
 
 func (s *MySuite) TestSearchTorrentsSortingBySeeders(c *C) {

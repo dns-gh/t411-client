@@ -159,7 +159,7 @@ func makeURL(title string, season, episode int, language string, offset, limit i
 }
 
 // SearchTorrentsByTerms searches a torrent using terms and return a list of torrents
-// with a maximum of 10 torrents.
+// with a maximum of 10 torrents by default.
 func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language string, offset, limit int) (*Torrents, error) {
 	usedAPI, u, err := makeURL(title, season, episode, language, offset, limit)
 	if err != nil {
