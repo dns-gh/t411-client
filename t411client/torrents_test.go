@@ -48,11 +48,8 @@ func (s *MySuite) TestMakeURL(c *C) {
 	c.Assert(u.String(), Equals, expected)
 }
 
-func checkTorrents(c *C, torrents *Torrents, query, total string, offset, limit int) {
-	if len(total) != 0 {
-		// only check this field when wanted. Too much variations sometimes due to real time uploading.
-		c.Assert(torrents.Total, Equals, total)
-	}
+func checkTorrents(c *C, torrents *Torrents, query string, offset, limit int) {
+	c.Assert(torrents.Total, Not(HasLen), 0)
 	c.Assert(torrents.Offset, Equals, strconv.Itoa(offset))
 	c.Assert(torrents.Limit, Equals, strconv.Itoa(limit))
 	c.Assert(torrents.Torrents, Not(HasLen), 0)
@@ -66,31 +63,31 @@ func (s *MySuite) TestSearchTorrentsByTerms(c *C) {
 	t411, _, _ := createT411Client(c)
 	torrents, err := t411.SearchTorrentsByTerms("vikings", 1, 1, "", "", 0, 0)
 	c.Assert(err, IsNil)
-	checkTorrents(c, torrents, "viking", "12", 0, 10)
+	checkTorrents(c, torrents, "viking", 0, 10)
 
 	torrents, err = t411.SearchTorrentsByTerms("vikings", 1, 1, "french", "", 0, 0)
 	c.Assert(err, IsNil)
-	checkTorrents(c, torrents, "viking", "4", 0, 10)
+	checkTorrents(c, torrents, "viking", 0, 10)
 
 	torrents, err = t411.SearchTorrentsByTerms("vikings", 1, 1, "", "", 1, 0)
 	c.Assert(err, IsNil)
 	c.Assert(torrents.Torrents, HasLen, 10)
-	checkTorrents(c, torrents, "viking", "12", 1, 10)
+	checkTorrents(c, torrents, "viking", 1, 10)
 
 	torrents, err = t411.SearchTorrentsByTerms("vikings", -1, -1, "", "", 0, 0)
 	c.Assert(err, IsNil)
 	c.Assert(torrents.Torrents, HasLen, 10)
-	checkTorrents(c, torrents, "viking", "", 0, 10)
+	checkTorrents(c, torrents, "viking", 0, 10)
 
 	// checks it's working when asking a large amount of torrent
 	torrents, err = t411.SearchTorrentsByTerms("vikings", -1, -1, "", "", 0, 500)
 	c.Assert(err, IsNil)
 	c.Assert(torrents.Torrents, HasLen, 500)
-	checkTorrents(c, torrents, "viking", "", 0, 500)
+	checkTorrents(c, torrents, "viking", 0, 500)
 
 	torrents, err = t411.SearchTorrentsByTerms("avatar", -1, -1, "", "DVDrip [Rip depuis DVD-R]", 0, 0)
 	c.Assert(err, IsNil)
-	checkTorrents(c, torrents, "avatar", "94", 0, 10)
+	checkTorrents(c, torrents, "avatar", 0, 10)
 }
 
 func (s *MySuite) TestSearchAllTorrents(c *C) {
@@ -101,7 +98,7 @@ func (s *MySuite) TestSearchAllTorrents(c *C) {
 
 	torrents, err = t411.SearchTorrentsByTerms("avatar", -1, -1, "", "DVDrip [Rip depuis DVD-R]", 0, 0)
 	c.Assert(err, IsNil)
-	checkTorrents(c, torrents, "avatar", "94", 0, 10)
+	checkTorrents(c, torrents, "avatar", 0, 10)
 }
 
 func (s *MySuite) TestSearchTorrentsByTermsComplete(c *C) {
@@ -133,7 +130,7 @@ func (s *MySuite) TestSearchTorrentsSortingBySeeders(c *C) {
 	t411, _, _ := createT411Client(c)
 	torrents, err := t411.SearchTorrentsByTerms("vikings", 1, 1, "", "", 0, 0)
 	c.Assert(err, IsNil)
-	checkTorrents(c, torrents, "viking", "12", 0, 10)
+	checkTorrents(c, torrents, "viking", 0, 10)
 	t411.SortBySeeders(torrents.Torrents)
 	current, err := strconv.Atoi(torrents.Torrents[0].Seeders)
 	c.Assert(err, IsNil)
