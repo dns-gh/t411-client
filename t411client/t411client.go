@@ -134,12 +134,12 @@ func fixJSONResponse(bytes []byte) []byte {
 	return []byte(str)
 }
 
-func (t *T411) decode(data interface{}, resp *http.Response, usedAPI, query string) error {
+func decodeErr(resp *http.Response) ([]byte, error) {
 	// resp.ContentLength not set properly from server side ?
 	buf := bytes.NewBuffer(make([]byte, 0 /*, resp.ContentLength */))
 	_, err := buf.ReadFrom(resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	bytes := buf.Bytes()
 
@@ -149,13 +149,20 @@ func (t *T411) decode(data interface{}, resp *http.Response, usedAPI, query stri
 	errorAPI := &errAPI{}
 	err = json.Unmarshal(bytes, errorAPI)
 	if err != nil {
-		return err
+		return bytes, nil
 	}
 	if len(errorAPI.Text) != 0 {
-		return errorAPI
+		return nil, errorAPI
 	}
-	bytes = fixJSONResponse(bytes)
-	if err = json.Unmarshal(bytes, data); err != nil {
+	return bytes, nil
+}
+
+func (t *T411) decode(data interface{}, resp *http.Response, usedAPI, query string) error {
+	bytes, err := decodeErr(resp)
+	if err != nil {
+		return err
+	}
+	if err = json.Unmarshal(fixJSONResponse(bytes), data); err != nil {
 		log.Printf("Error decoding using '%s' API for '%s' query :%v", usedAPI, query, err)
 		return err
 	}

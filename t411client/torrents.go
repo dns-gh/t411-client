@@ -3,7 +3,6 @@ package t411client
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -12,9 +11,15 @@ import (
 )
 
 var (
-	errEOF             = errors.New("no more torrents to find")
-	errTorrentNotFound = &errAPI{
+	errEOF = errors.New("no more torrents to find")
+	// it seems like a bug in the t411 API where two identicals errors
+	// have different error codes. The one to remove would be the err301...
+	err301TorrentNotFound = &errAPI{
 		Code: 301,
+		Text: "Torrent not found",
+	}
+	err1301TorrentNotFound = &errAPI{
+		Code: 1301,
 		Text: "Torrent not found",
 	}
 )
@@ -290,41 +295,36 @@ func (*T411) SortBySeeders(torrents []Torrent) {
 	sort.Sort(bySeeder{torrents})
 }
 
-func (t *T411) download(ID string) (io.ReadCloser, error) {
-	u, err := url.Parse(fmt.Sprintf("%s/torrents/download/%s", t.baseURL, ID))
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := t.do(req)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Body, err
-}
-
 // DownloadTorrentByID downloads the torrent of id 'id' into a temporary
 // filename begining with 'prefix' and returns the complete temporary filename
 // on success.
 func (t *T411) DownloadTorrentByID(id, prefix string) (string, error) {
-	r, err := t.download(id)
+	u, err := url.Parse(fmt.Sprintf("%s/torrents/download/%s", t.baseURL, id))
 	if err != nil {
 		return "", err
 	}
-	defer r.Close()
 
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := t.do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	bytes, err := decodeErr(resp)
+	if err != nil {
+		return "", err
+	}
 	tmpfile, err := ioutil.TempFile("", prefix)
 	if err != nil {
 		return "", err
 	}
 	defer tmpfile.Close()
-
-	if _, err = io.Copy(tmpfile, r); err != nil {
+	if _, err = tmpfile.Write(bytes); err != nil {
 		return "", err
 	}
 
@@ -342,7 +342,9 @@ func (t *T411) DownloadTorrentByTerms(title string, season, episode int, languag
 	if err != nil {
 		return "", err
 	}
-
+	if len(torrents.Torrents) == 0 {
+		return "", err1301TorrentNotFound
+	}
 	t.SortBySeeders(torrents.Torrents)
 	return t.DownloadTorrentByID(torrents.Torrents[len(torrents.Torrents)-1].ID, fmt.Sprintf("%sS%02dE%02d", title, season, episode))
 }

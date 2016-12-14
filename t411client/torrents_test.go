@@ -156,6 +156,9 @@ func (s *MySuite) TestDownloadTorrentByID(c *C) {
 	}()
 	c.Assert(path, Not(HasLen), 0)
 	c.Assert(strings.Contains(path, "test-prefix"), Equals, true)
+
+	_, err = t411.DownloadTorrentByID("123456789", "test-prefix")
+	c.Assert(err, DeepEquals, err1301TorrentNotFound)
 }
 
 func (s *MySuite) TestDownloadTorrentByTerms(c *C) {
@@ -167,6 +170,9 @@ func (s *MySuite) TestDownloadTorrentByTerms(c *C) {
 	}()
 	c.Assert(path, Not(HasLen), 0)
 	c.Assert(strings.Contains(path, "vikingsS01E01"), Equals, true)
+
+	_, err = t411.DownloadTorrentByTerms("vikings", 100, 100, "", "")
+	c.Assert(err, DeepEquals, err1301TorrentNotFound)
 }
 
 func (s *MySuite) TestTorrentsDetails(c *C) {
@@ -203,5 +209,5 @@ func (s *MySuite) TestTorrentsDetails(c *C) {
 	c.Assert(details, DeepEquals, expected)
 
 	_, err = t411.TorrentsDetails("1")
-	c.Assert(err, DeepEquals, errTorrentNotFound)
+	c.Assert(err, DeepEquals, err301TorrentNotFound)
 }
