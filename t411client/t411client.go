@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -131,6 +132,17 @@ func fixJSONResponse(bytes []byte) []byte {
 	str = strings.Replace(str, fmt.Sprintf("%q:10", "limit"), fmt.Sprintf("%q:%q", "limit", "10"), 1)
 	str = strings.Replace(str, fmt.Sprintf("%q:0", "total"), fmt.Sprintf("%q:%q", "total", "0"), 1)
 	str = strings.Replace(str, fmt.Sprintf("%q:0", "owner"), fmt.Sprintf("%q:%q", "owner", "0"), 1)
+	// removes unwanted integers in the list of torrents that appears sometimes
+	// and replace them with empty Torrent data.
+	re := regexp.MustCompile("},[0-9]+,{")
+	split := re.Split(str, -1)
+	str = strings.Join(split, "},{},{")
+	re = regexp.MustCompile(":\\[[0-9]+,")
+	split = re.Split(str, -1)
+	str = strings.Join(split, ":[{},")
+	re = regexp.MustCompile(",[0-9]+\\]}")
+	split = re.Split(str, -1)
+	str = strings.Join(split, ",{}]}")
 	return []byte(str)
 }
 
