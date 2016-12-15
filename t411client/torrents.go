@@ -8,10 +8,12 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 var (
-	errEOF = errors.New("no more torrents to find")
+	errEOF                     = errors.New("no more torrents to find")
+	errPotentiallyWrongTorrent = errors.New("potentially wrong torrent")
 	// it seems like a bug in the t411 API where two identicals errors
 	// have different error codes. The one to remove would be the err301...
 	err301TorrentNotFound = &errAPI{
@@ -42,6 +44,10 @@ type Torrent struct {
 	Categoryimage  string `json:"categoryimage"`
 	Username       string `json:"username"`
 	Privacy        string `json:"privacy"`
+}
+
+func (t *Torrent) checkNameContains(title string) bool {
+	return strings.Contains(strings.ToLower(t.Name), strings.ToLower(title))
 }
 
 // Torrents represents the torrents data.
@@ -319,7 +325,7 @@ func (t *T411) DownloadTorrentByID(id, prefix string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	tmpfile, err := ioutil.TempFile("", prefix)
+	tmpfile, err := ioutil.TempFile("", prefix+" - ")
 	if err != nil {
 		return "", err
 	}
@@ -346,5 +352,9 @@ func (t *T411) DownloadTorrentByTerms(title string, season, episode int, languag
 		return "", err1301TorrentNotFound
 	}
 	t.SortBySeeders(torrents.Torrents)
-	return t.DownloadTorrentByID(torrents.Torrents[len(torrents.Torrents)-1].ID, fmt.Sprintf("%sS%02dE%02d", title, season, episode))
+	last := torrents.Torrents[len(torrents.Torrents)-1]
+	if !last.checkNameContains(title) {
+		return "", errPotentiallyWrongTorrent
+	}
+	return t.DownloadTorrentByID(last.ID, fmt.Sprintf("%s - S%02dE%02d", title, season, episode))
 }

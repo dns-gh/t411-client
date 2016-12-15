@@ -169,7 +169,7 @@ func (s *MySuite) TestDownloadTorrentByTerms(c *C) {
 		c.Assert(os.Remove(path), IsNil)
 	}()
 	c.Assert(path, Not(HasLen), 0)
-	c.Assert(strings.Contains(path, "vikingsS01E01"), Equals, true)
+	c.Assert(strings.Contains(path, "vikings - S01E01"), Equals, true)
 
 	_, err = t411.DownloadTorrentByTerms("vikings", 100, 100, "", "")
 	c.Assert(err, DeepEquals, err1301TorrentNotFound)
