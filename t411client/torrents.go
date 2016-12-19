@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -302,9 +304,8 @@ func (*T411) SortBySeeders(torrents []Torrent) {
 }
 
 // DownloadTorrentByID downloads the torrent of id 'id' into a temporary
-// filename begining with 'prefix' and returns the complete temporary filename
-// on success.
-func (t *T411) DownloadTorrentByID(id, prefix string) (string, error) {
+// folder on success and returns the absolute path to the newly created file.
+func (t *T411) DownloadTorrentByID(id string) (string, error) {
 	u, err := url.Parse(fmt.Sprintf("%s/torrents/download/%s", t.baseURL, id))
 	if err != nil {
 		return "", err
@@ -325,16 +326,16 @@ func (t *T411) DownloadTorrentByID(id, prefix string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	tmpfile, err := ioutil.TempFile("", prefix+" - ")
+	split := strings.Split(resp.Header["Content-Disposition"][0], "\"")
+	if len(split) != 3 {
+		return "", fmt.Errorf("failed to extract filename from http download header")
+	}
+	filename := filepath.Join(os.TempDir(), split[1])
+	err = ioutil.WriteFile(filename, bytes, 0666)
 	if err != nil {
 		return "", err
 	}
-	defer tmpfile.Close()
-	if _, err = tmpfile.Write(bytes); err != nil {
-		return "", err
-	}
-
-	return tmpfile.Name(), nil
+	return filename, nil
 }
 
 // DownloadTorrentByTerms searches the torrent corresponding to the title,
@@ -356,5 +357,5 @@ func (t *T411) DownloadTorrentByTerms(title string, season, episode int, languag
 	if !last.checkNameContains(title) {
 		return "", errPotentiallyWrongTorrent
 	}
-	return t.DownloadTorrentByID(last.ID, fmt.Sprintf("%s - S%02dE%02d", title, season, episode))
+	return t.DownloadTorrentByID(last.ID)
 }

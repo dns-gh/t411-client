@@ -1,6 +1,7 @@
 package t411client
 
 import (
+	"path/filepath"
 	"strings"
 
 	"strconv"
@@ -149,15 +150,15 @@ func (s *MySuite) TestDownloadTorrentByID(c *C) {
 	c.Assert(err, IsNil)
 	torrentsList := torrents.Torrents
 	c.Assert(torrentsList, Not(HasLen), 0)
-	path, err := t411.DownloadTorrentByID(torrentsList[0].ID, "test-prefix")
+	path, err := t411.DownloadTorrentByID(torrentsList[0].ID)
 	c.Assert(err, IsNil)
 	defer func() {
 		c.Assert(os.Remove(path), IsNil)
 	}()
-	c.Assert(path, Not(HasLen), 0)
-	c.Assert(strings.Contains(path, "test-prefix"), Equals, true)
+	c.Assert(strings.Contains(path, "tmp"), Equals, true)
+	c.Assert(filepath.Base(path), Equals, "Vikings.S01E01.REPACK.HDTV.x264-2HD.torrent")
 
-	_, err = t411.DownloadTorrentByID("123456789", "test-prefix")
+	_, err = t411.DownloadTorrentByID("123456789")
 	c.Assert(err, DeepEquals, err1301TorrentNotFound)
 }
 
@@ -169,7 +170,7 @@ func (s *MySuite) TestDownloadTorrentByTerms(c *C) {
 		c.Assert(os.Remove(path), IsNil)
 	}()
 	c.Assert(path, Not(HasLen), 0)
-	c.Assert(strings.Contains(path, "vikings - S01E01"), Equals, true)
+	c.Assert(strings.Contains(path, "Vikings.S01E01"), Equals, true)
 
 	_, err = t411.DownloadTorrentByTerms("vikings", 100, 100, "", "")
 	c.Assert(err, DeepEquals, err1301TorrentNotFound)
