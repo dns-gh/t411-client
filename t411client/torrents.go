@@ -11,18 +11,19 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
-	errEOF                     = errors.New("no more torrents to find")
-	errPotentiallyWrongTorrent = errors.New("potentially wrong torrent")
+	errEOF = errors.New("no more torrents to find")
 	// it seems like a bug in the t411 API where two identicals errors
 	// have different error codes. The one to remove would be the err301...
 	err301TorrentNotFound = &errAPI{
 		Code: 301,
 		Text: "Torrent not found",
 	}
-	err1301TorrentNotFound = &errAPI{
+	//ErrTorrentNotFound represents the 1301 error code 'torrent not found'.
+	ErrTorrentNotFound = &errAPI{
 		Code: 1301,
 		Text: "Torrent not found",
 	}
@@ -48,7 +49,7 @@ type Torrent struct {
 	Privacy        string `json:"privacy"`
 }
 
-func (t *Torrent) checkNameContains(title string) bool {
+func (t *Torrent) checkTorrentName(title string) bool {
 	return strings.Contains(strings.ToLower(t.Name), strings.ToLower(title))
 }
 
@@ -172,7 +173,7 @@ func addSeason(v url.Values, season int) {
 }
 
 func addLanguage(v url.Values, language string) {
-	if ID, ok := LanguageMap[language]; ok {
+	if ID, ok := LanguageMap[strings.ToLower(language)]; ok {
 		v.Add(fmt.Sprintf("term[%d][]", catLanguageID), fmt.Sprintf("%d", ID))
 	}
 }
@@ -338,24 +339,76 @@ func (t *T411) DownloadTorrentByID(id string) (string, error) {
 	return filename, nil
 }
 
+func (t *T411) filterByDate(torrents []Torrent, date string) ([]Torrent, error) {
+	timeConstraint, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, err
+	}
+	filtered := []Torrent{}
+	for _, v := range torrents {
+		timeAdded, err := time.Parse("2006-01-02 15:04:05", v.Added)
+		if err != nil {
+			return nil, err
+		}
+		diff := timeAdded.Sub(timeConstraint).Hours()
+		// 2 weeks close
+		if diff >= 0 && diff <= 24*7*2 {
+			filtered = append(filtered, v)
+		}
+	}
+	return filtered, nil
+}
+
+func (t *T411) filterByName(torrents []Torrent, title string) ([]Torrent, error) {
+	title = strings.ToLower(title)
+	title = strings.Replace(title, "(", " ", -1)
+	title = strings.Replace(title, ")", " ", -1)
+	words := strings.Split(title, " ")
+	filtered := []Torrent{}
+	for _, v := range torrents {
+		lowerName := strings.ToLower(v.Name)
+		containsAll := true
+		for _, v := range words {
+			if !strings.Contains(lowerName, v) {
+				containsAll = false
+				break
+			}
+		}
+		if containsAll {
+			filtered = append(filtered, v)
+		}
+	}
+	return filtered, nil
+}
+
 // DownloadTorrentByTerms searches the torrent corresponding to the title,
 // season, episode and language, downloads the one with the most seeders
 // and return the location of the file located in a temporary folder.
+// It also filters the torrents by a date in order to get torrents
+// with a date close to the provided one, if any.
 // Note: the search is done with an offset of 0 and a limit of 10 results per search by default.
 // Note: the 'language' parameter must be one of the values of LanguageMap variable.
 // Note: the 'quality' parameter must be one of the values of QualityMap variable.
-func (t *T411) DownloadTorrentByTerms(title string, season, episode int, language, quality string) (string, error) {
+func (t *T411) DownloadTorrentByTerms(title string, season, episode int, language, quality, date string) (string, error) {
 	torrents, err := t.SearchTorrentsByTerms(title, season, episode, language, quality, 0, 0)
 	if err != nil {
 		return "", err
 	}
-	if len(torrents.Torrents) == 0 {
-		return "", err1301TorrentNotFound
+	torrentList := torrents.Torrents
+	if len(date) != 0 {
+		torrentList, err = t.filterByDate(torrentList, date)
+		if err != nil {
+			return "", err
+		}
+
 	}
-	t.SortBySeeders(torrents.Torrents)
-	last := torrents.Torrents[len(torrents.Torrents)-1]
-	if !last.checkNameContains(title) {
-		return "", errPotentiallyWrongTorrent
+	torrentList, err = t.filterByName(torrentList, title)
+	if err != nil {
+		return "", err
 	}
-	return t.DownloadTorrentByID(last.ID)
+	if len(torrentList) == 0 {
+		return "", ErrTorrentNotFound
+	}
+	t.SortBySeeders(torrentList)
+	return t.DownloadTorrentByID(torrentList[len(torrentList)-1].ID)
 }

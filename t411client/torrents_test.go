@@ -159,12 +159,12 @@ func (s *MySuite) TestDownloadTorrentByID(c *C) {
 	c.Assert(filepath.Base(path), Equals, "Vikings.S01E01.REPACK.HDTV.x264-2HD.torrent")
 
 	_, err = t411.DownloadTorrentByID("123456789")
-	c.Assert(err, DeepEquals, err1301TorrentNotFound)
+	c.Assert(err, DeepEquals, ErrTorrentNotFound)
 }
 
 func (s *MySuite) TestDownloadTorrentByTerms(c *C) {
 	t411, _, _ := createT411Client(c)
-	path, err := t411.DownloadTorrentByTerms("vikings", 1, 1, "", "")
+	path, err := t411.DownloadTorrentByTerms("vikings", 1, 1, "", "", "")
 	c.Assert(err, IsNil)
 	defer func() {
 		c.Assert(os.Remove(path), IsNil)
@@ -172,8 +172,8 @@ func (s *MySuite) TestDownloadTorrentByTerms(c *C) {
 	c.Assert(path, Not(HasLen), 0)
 	c.Assert(strings.Contains(path, "Vikings.S01E01"), Equals, true)
 
-	_, err = t411.DownloadTorrentByTerms("vikings", 100, 100, "", "")
-	c.Assert(err, DeepEquals, err1301TorrentNotFound)
+	_, err = t411.DownloadTorrentByTerms("vikings", 100, 100, "", "", "")
+	c.Assert(err, DeepEquals, ErrTorrentNotFound)
 }
 
 func (s *MySuite) TestTorrentsDetails(c *C) {
