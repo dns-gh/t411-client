@@ -37,7 +37,8 @@ func (s *MySuite) TestNewT411(c *C) {
 			Username: username,
 			Password: password,
 		},
-		token: t411.token,
+		token:    t411.token,
+		maxDelay: 336,
 	}
 	c.Assert(t411, DeepEquals, expected)
 

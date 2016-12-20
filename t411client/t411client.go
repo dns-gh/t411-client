@@ -37,7 +37,8 @@ const (
 	t411BaseURL = "https://api.t411.li"
 	// UserAgent is the user agent header used in http requests.
 	// You can override it if wanted when using t411client package.
-	UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36"
+	UserAgent    = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36"
+	defaultDelay = 24 * 7 * 2 // 2 weeks
 )
 
 type errAPI struct {
@@ -68,6 +69,7 @@ type T411 struct {
 	credentials Credentials
 	output      string
 	httpClient  *http.Client
+	maxDelay    float64
 }
 
 // GetToken returns the token retrieved from authentication, if any.
@@ -102,7 +104,8 @@ func NewT411Client(baseURL, username, password string) (*T411, error) {
 			Username: username,
 			Password: password,
 		},
-		token: &token{},
+		token:    &token{},
+		maxDelay: defaultDelay,
 	}
 	err := t.retrieveToken()
 	if err != nil {

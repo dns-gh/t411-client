@@ -337,6 +337,20 @@ func (t *T411) DownloadTorrentByID(id string) (string, error) {
 	return filename, nil
 }
 
+// SetMaxDelay sets the maximum delay allowed to have between
+// the release date of a show episode and the added date of a torrent
+// in the t411 tracker.
+func (t *T411) SetMaxDelay(maxDelay float64) {
+	t.maxDelay = maxDelay
+}
+
+// GetMaxDelay returns the maximum delay allowed to have between
+// the release date of a show episode and the added date of a torrent
+// in the t411 tracker.
+func (t *T411) GetMaxDelay() float64 {
+	return t.maxDelay
+}
+
 func (t *T411) filterByDate(torrents []Torrent, date string) ([]Torrent, error) {
 	timeConstraint, err := time.Parse("2006-01-02", date)
 	if err != nil {
@@ -350,7 +364,7 @@ func (t *T411) filterByDate(torrents []Torrent, date string) ([]Torrent, error) 
 		}
 		diff := timeAdded.Sub(timeConstraint).Hours()
 		// 2 weeks close
-		if diff >= 0 && diff <= 24*7*2 {
+		if diff >= 0 && diff <= t.maxDelay {
 			filtered = append(filtered, v)
 		}
 	}
