@@ -27,7 +27,7 @@ func (t *T411) TermsTree() (*TermsTree, error) {
 		return nil, errURLParsing
 	}
 
-	resp, err := t.doGet(u)
+	resp, err := t.do("GET", u, nil)
 	if err != nil {
 		return nil, err
 	}

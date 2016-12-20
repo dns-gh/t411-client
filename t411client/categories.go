@@ -25,7 +25,7 @@ func (t *T411) CategoriesTree() (*Categories, error) {
 		return nil, errURLParsing
 	}
 
-	resp, err := t.doGet(u)
+	resp, err := t.do("GET", u, nil)
 	if err != nil {
 		return nil, err
 	}

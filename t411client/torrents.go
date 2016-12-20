@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -227,7 +226,7 @@ func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language
 	if err != nil {
 		return nil, err
 	}
-	resp, err := t.doGet(u)
+	resp, err := t.do("GET", u, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +284,7 @@ func (t *T411) TorrentsDetails(id string) (*TorrentDetails, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := t.doGet(u)
+	resp, err := t.do("GET", u, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -312,12 +311,7 @@ func (t *T411) DownloadTorrentByID(id string) (string, error) {
 		return "", err
 	}
 
-	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := t.do(req)
+	resp, err := t.do("GET", u, nil)
 	if err != nil {
 		return "", err
 	}

@@ -24,7 +24,7 @@ func (t *T411) UsersProfile(uid string) (*User, error) {
 		return nil, errURLParsing
 	}
 
-	resp, err := t.doGet(u)
+	resp, err := t.do("GET", u, nil)
 	if err != nil {
 		return nil, err
 	}

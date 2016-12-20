@@ -26,7 +26,7 @@ func createT411Client(c *C) (*T411, string, string) {
 // export T411_USERNAME=YOUR_USERNAME && export T411_PASSWORD=YOUR_PASSWORD && go test ...t411client -gocheck.vv -test.v -gocheck.f TestNAME
 func (s *MySuite) TestNewT411(c *C) {
 	t411, username, password := createT411Client(c)
-	t411Token, err := t411.getToken()
+	t411Token, err := t411.GetToken()
 	c.Assert(err, IsNil)
 	c.Assert(t411Token, Not(HasLen), 0)
 	expected := &T411{

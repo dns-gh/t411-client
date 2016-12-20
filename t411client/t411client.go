@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -32,7 +33,12 @@ var (
 )
 
 // the base url can change every time the t411 api moves from provider
-const t411BaseURL = "https://api.t411.li"
+const (
+	t411BaseURL = "https://api.t411.li"
+	// UserAgent is the user agent header used in http requests.
+	// You can override it if wanted when using t411client package.
+	UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36"
+)
 
 type errAPI struct {
 	Code int    `json:"code"`
@@ -64,7 +70,8 @@ type T411 struct {
 	httpClient  *http.Client
 }
 
-func (t *T411) getToken() (string, error) {
+// GetToken returns the token retrieved from authentication, if any.
+func (t *T411) GetToken() (string, error) {
 	if t.token != nil {
 		return t.token.Token, nil
 	}
@@ -104,20 +111,24 @@ func NewT411Client(baseURL, username, password string) (*T411, error) {
 	return t, nil
 }
 
-func (t *T411) do(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Authorization", t.token.Token)
+func (t *T411) doRequest(req *http.Request) (*http.Response, error) {
+	if len(t.token.Token) != 0 {
+		req.Header.Set("Authorization", t.token.Token)
+	} else {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
 	req.Header.Set("Accept", "application/json")
-
+	req.Header.Set("User-Agent", UserAgent)
 	return t.httpClient.Do(req)
 }
 
-func (t *T411) doGet(u *url.URL) (*http.Response, error) {
-	req, err := http.NewRequest("GET", u.String(), nil)
+func (t *T411) do(method string, u *url.URL, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, u.String(), body)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := t.do(req)
+	resp, err := t.doRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +205,7 @@ func (t *T411) retrieveToken() error {
 	form := url.Values{}
 	form.Set("username", t.credentials.Username)
 	form.Set("password", t.credentials.Password)
-	resp, err := http.PostForm(u.String(), form)
+	resp, err := t.do("POST", u, strings.NewReader(form.Encode()))
 	if err != nil {
 		return err
 	}
