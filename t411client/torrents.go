@@ -321,9 +321,13 @@ func (t *T411) DownloadTorrentByID(id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	split := strings.Split(resp.Header["Content-Disposition"][0], "\"")
+	contentDisposition := resp.Header["Content-Disposition"]
+	if len(contentDisposition) == 0 {
+		return "", fmt.Errorf("'Content-Disposition' header not found in http response")
+	}
+	split := strings.Split(contentDisposition[0], "\"")
 	if len(split) != 3 {
-		return "", fmt.Errorf("failed to extract filename from http download header")
+		return "", fmt.Errorf("failed to extract filename from http 'Content-Disposition' header")
 	}
 	filename := filepath.Join(os.TempDir(), split[1])
 	err = ioutil.WriteFile(filename, bytes, 0666)
