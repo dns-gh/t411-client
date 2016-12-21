@@ -160,6 +160,11 @@ func (s *MySuite) TestDownloadTorrent(c *C) {
 	c.Assert(strings.Contains(path, "tmp"), Equals, true)
 	c.Assert(filepath.Base(path), Equals, "Vikings.S01E01.REPACK.HDTV.x264-2HD.torrent")
 
+	torrentsList[0].IsVerified = "false"
+	t411.OnlyVerified(true)
+	_, err = t411.DownloadTorrent(&torrentsList[0])
+	c.Assert(err.Error(), DeepEquals, "cannot download non-verified torrent")
+
 	_, err = t411.DownloadTorrent(&Torrent{
 		ID:   "123456789",
 		Size: "",

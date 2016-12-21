@@ -64,12 +64,13 @@ type token struct {
 
 // T411 represents the web client to the t411 API
 type T411 struct {
-	baseURL     string
-	token       *token
-	credentials Credentials
-	httpClient  *http.Client
-	maxDelay    float64
-	keepRatio   bool
+	baseURL      string
+	token        *token
+	credentials  Credentials
+	httpClient   *http.Client
+	maxDelay     float64
+	keepRatio    bool
+	onlyVerified bool
 }
 
 // GetToken returns the token retrieved from authentication, if any.
@@ -94,10 +95,16 @@ func (t *T411) GetMaxDelay() float64 {
 	return t.maxDelay
 }
 
-// KeepRatio disable any download that could put the ratio below 1.
+// KeepRatio disables any download that could put the ratio below 1.
 // By default, keepRatio is set to true.
 func (t *T411) KeepRatio(keepRatio bool) {
 	t.keepRatio = keepRatio
+}
+
+// OnlyVerified enables download only of verified torrents.
+// By default, onlyVerified is set to false.
+func (t *T411) OnlyVerified(onlyVerified bool) {
+	t.onlyVerified = onlyVerified
 }
 
 // NewT411Client creates a T411 web client.
@@ -123,9 +130,10 @@ func NewT411Client(baseURL, username, password string) (*T411, error) {
 			Username: username,
 			Password: password,
 		},
-		token:     &token{},
-		maxDelay:  defaultDelay,
-		keepRatio: true,
+		token:        &token{},
+		maxDelay:     defaultDelay,
+		keepRatio:    true,
+		onlyVerified: false,
 	}
 	err := t.retrieveToken()
 	if err != nil {

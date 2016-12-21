@@ -303,21 +303,38 @@ func (*T411) SortBySeeders(torrents []Torrent) {
 	sort.Sort(bySeeder{torrents})
 }
 
-// DownloadTorrent downloads the torrentinto a temporary
-// folder on success and returns the absolute path to the newly created file.
-func (t *T411) DownloadTorrent(torrent *Torrent) (string, error) {
+func (t *T411) checkRatio(torrent *Torrent) error {
 	if t.keepRatio && len(torrent.Size) != 0 {
 		torrentSize, err := strconv.ParseFloat(torrent.Size, 64)
 		if err != nil {
-			return "", err
+			return err
 		}
 		ratio, err := t.GetOwnRatio(torrentSize)
 		if err != nil {
-			return "", err
+			return err
 		}
 		if ratio < 1 {
-			return "", fmt.Errorf("cannot download to keep ratio > 1")
+			return fmt.Errorf("cannot download to keep ratio > 1")
 		}
+	}
+	return nil
+}
+
+func (t *T411) checkVerified(torrent *Torrent) error {
+	if t.onlyVerified && torrent.IsVerified == "false" {
+		return fmt.Errorf("cannot download non-verified torrent")
+	}
+	return nil
+}
+
+// DownloadTorrent downloads the torrentinto a temporary
+// folder on success and returns the absolute path to the newly created file.
+func (t *T411) DownloadTorrent(torrent *Torrent) (string, error) {
+	if err := t.checkRatio(torrent); err != nil {
+		return "", fmt.Errorf("cannot download to keep ratio > 1")
+	}
+	if err := t.checkVerified(torrent); err != nil {
+		return "", fmt.Errorf("cannot download non-verified torrent")
 	}
 	u, err := url.Parse(fmt.Sprintf("%s/torrents/download/%s", t.baseURL, torrent.ID))
 	if err != nil {
