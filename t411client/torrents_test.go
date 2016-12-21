@@ -8,6 +8,8 @@ import (
 
 	"os"
 
+	"math"
+
 	. "gopkg.in/check.v1"
 )
 
@@ -144,13 +146,13 @@ func (s *MySuite) TestSearchTorrentsSortingBySeeders(c *C) {
 	}
 }
 
-func (s *MySuite) TestDownloadTorrentByID(c *C) {
+func (s *MySuite) TestDownloadTorrent(c *C) {
 	t411, _, _ := createT411Client(c)
 	torrents, err := t411.SearchTorrentsByTerms("vikings", 1, 1, "", "", 0, 0)
 	c.Assert(err, IsNil)
 	torrentsList := torrents.Torrents
 	c.Assert(torrentsList, Not(HasLen), 0)
-	path, err := t411.DownloadTorrentByID(torrentsList[0].ID)
+	path, err := t411.DownloadTorrent(&torrentsList[0])
 	c.Assert(err, IsNil)
 	defer func() {
 		c.Assert(os.Remove(path), IsNil)
@@ -158,7 +160,24 @@ func (s *MySuite) TestDownloadTorrentByID(c *C) {
 	c.Assert(strings.Contains(path, "tmp"), Equals, true)
 	c.Assert(filepath.Base(path), Equals, "Vikings.S01E01.REPACK.HDTV.x264-2HD.torrent")
 
-	_, err = t411.DownloadTorrentByID("123456789")
+	_, err = t411.DownloadTorrent(&Torrent{
+		ID:   "123456789",
+		Size: "",
+	})
+	c.Assert(err, DeepEquals, ErrTorrentNotFound)
+
+	maxFloat := strconv.FormatFloat(math.MaxFloat64, 'E', -1, 64)
+	_, err = t411.DownloadTorrent(&Torrent{
+		ID:   "123456789",
+		Size: maxFloat,
+	})
+	c.Assert(err.Error(), DeepEquals, "cannot download to keep ratio > 1")
+
+	t411.KeepRatio(false)
+	_, err = t411.DownloadTorrent(&Torrent{
+		ID:   "123456789",
+		Size: maxFloat,
+	})
 	c.Assert(err, DeepEquals, ErrTorrentNotFound)
 }
 

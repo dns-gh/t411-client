@@ -67,9 +67,9 @@ type T411 struct {
 	baseURL     string
 	token       *token
 	credentials Credentials
-	output      string
 	httpClient  *http.Client
 	maxDelay    float64
+	keepRatio   bool
 }
 
 // GetToken returns the token retrieved from authentication, if any.
@@ -78,6 +78,26 @@ func (t *T411) GetToken() (string, error) {
 		return t.token.Token, nil
 	}
 	return "", errNoToken
+}
+
+// SetMaxDelay sets the maximum delay allowed to have between
+// the release date of a show episode and the added date of a torrent
+// in the t411 tracker.
+func (t *T411) SetMaxDelay(maxDelay float64) {
+	t.maxDelay = maxDelay
+}
+
+// GetMaxDelay returns the maximum delay allowed to have between
+// the release date of a show episode and the added date of a torrent
+// in the t411 tracker.
+func (t *T411) GetMaxDelay() float64 {
+	return t.maxDelay
+}
+
+// KeepRatio disable any download that could put the ratio below 1.
+// By default, keepRatio is set to true.
+func (t *T411) KeepRatio(keepRatio bool) {
+	t.keepRatio = keepRatio
 }
 
 // NewT411Client creates a T411 web client.
@@ -95,7 +115,6 @@ func NewT411Client(baseURL, username, password string) (*T411, error) {
 	}
 	t := &T411{
 		baseURL: baseURL,
-		output:  "/tmp",
 		httpClient: &http.Client{
 			Timeout:   time.Second * 10,
 			Transport: netTransport,
@@ -104,8 +123,9 @@ func NewT411Client(baseURL, username, password string) (*T411, error) {
 			Username: username,
 			Password: password,
 		},
-		token:    &token{},
-		maxDelay: defaultDelay,
+		token:     &token{},
+		maxDelay:  defaultDelay,
+		keepRatio: true,
 	}
 	err := t.retrieveToken()
 	if err != nil {

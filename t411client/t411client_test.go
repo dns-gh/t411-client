@@ -32,13 +32,13 @@ func (s *MySuite) TestNewT411(c *C) {
 	expected := &T411{
 		baseURL:    t411BaseURL,
 		httpClient: t411.httpClient,
-		output:     t411.output,
 		credentials: Credentials{
 			Username: username,
 			Password: password,
 		},
-		token:    t411.token,
-		maxDelay: 336,
+		token:     t411.token,
+		maxDelay:  336,
+		keepRatio: true,
 	}
 	c.Assert(t411, DeepEquals, expected)
 

@@ -303,10 +303,23 @@ func (*T411) SortBySeeders(torrents []Torrent) {
 	sort.Sort(bySeeder{torrents})
 }
 
-// DownloadTorrentByID downloads the torrent of id 'id' into a temporary
+// DownloadTorrent downloads the torrentinto a temporary
 // folder on success and returns the absolute path to the newly created file.
-func (t *T411) DownloadTorrentByID(id string) (string, error) {
-	u, err := url.Parse(fmt.Sprintf("%s/torrents/download/%s", t.baseURL, id))
+func (t *T411) DownloadTorrent(torrent *Torrent) (string, error) {
+	if t.keepRatio && len(torrent.Size) != 0 {
+		torrentSize, err := strconv.ParseFloat(torrent.Size, 64)
+		if err != nil {
+			return "", err
+		}
+		ratio, err := t.GetOwnRatio(torrentSize)
+		if err != nil {
+			return "", err
+		}
+		if ratio < 1 {
+			return "", fmt.Errorf("cannot download to keep ratio > 1")
+		}
+	}
+	u, err := url.Parse(fmt.Sprintf("%s/torrents/download/%s", t.baseURL, torrent.ID))
 	if err != nil {
 		return "", err
 	}
@@ -335,20 +348,6 @@ func (t *T411) DownloadTorrentByID(id string) (string, error) {
 		return "", err
 	}
 	return filename, nil
-}
-
-// SetMaxDelay sets the maximum delay allowed to have between
-// the release date of a show episode and the added date of a torrent
-// in the t411 tracker.
-func (t *T411) SetMaxDelay(maxDelay float64) {
-	t.maxDelay = maxDelay
-}
-
-// GetMaxDelay returns the maximum delay allowed to have between
-// the release date of a show episode and the added date of a torrent
-// in the t411 tracker.
-func (t *T411) GetMaxDelay() float64 {
-	return t.maxDelay
 }
 
 func (t *T411) filterByDate(torrents []Torrent, date string) ([]Torrent, error) {
@@ -422,5 +421,6 @@ func (t *T411) DownloadTorrentByTerms(title string, season, episode int, languag
 		return "", ErrTorrentNotFound
 	}
 	t.SortBySeeders(torrentList)
-	return t.DownloadTorrentByID(torrentList[len(torrentList)-1].ID)
+	torrent := torrentList[len(torrentList)-1]
+	return t.DownloadTorrent(&torrent)
 }
