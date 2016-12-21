@@ -14,7 +14,11 @@ func (s *MySuite) TestUsersProfile(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(user.Username, Equals, username)
 
-	ratio, err := user.GetRatio()
+	ratio, err := user.GetRatio(0)
+	c.Assert(err, IsNil)
+	c.Assert(ratio > 0, Equals, true)
+
+	ratio, err = t411.GetOwnRatio(0)
 	c.Assert(err, IsNil)
 	c.Assert(ratio > 0, Equals, true)
 }
