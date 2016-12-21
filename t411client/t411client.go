@@ -30,11 +30,16 @@ var (
 		Code: 101,
 		Text: "User not found",
 	}
+	errTokenExpired = &errAPI{
+		Code: 201,
+		Text: "Token has expired. Please login",
+	}
 )
 
 // the base url can change every time the t411 api moves from provider
 const (
 	t411BaseURL = "https://api.t411.li"
+	authAPI     = "/auth"
 	// UserAgent is the user agent header used in http requests.
 	// You can override it if wanted when using t411client package.
 	UserAgent    = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36"
@@ -161,6 +166,13 @@ func (t *T411) do(method string, u *url.URL, body io.Reader) (*http.Response, er
 
 	resp, err := t.doRequest(req)
 	if err != nil {
+		if err.Error() == errTokenExpired.Error() && u.RequestURI() != authAPI {
+			err2 := t.retrieveToken()
+			if err2 != nil {
+				return nil, err2
+			}
+			return nil, fmt.Errorf("%s -> token retrieved, try again", err.Error())
+		}
 		return nil, err
 	}
 	return resp, nil
@@ -227,7 +239,7 @@ func (t *T411) decode(data interface{}, resp *http.Response, usedAPI, query stri
 // and retrieve the token needed for further requests.
 // Note:the Time-To-Live of the token is 90 days.
 func (t *T411) retrieveToken() error {
-	usedAPI := "/auth"
+	usedAPI := authAPI
 	u, err := url.Parse(t.baseURL + usedAPI)
 	if err != nil {
 		return err
