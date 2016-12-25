@@ -94,15 +94,16 @@ func (t torrentsList) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
 // In this case we are only interested in category Season and Episode number.
 // Season and Episode number also have specific ID. init method creates the mapping
 var (
-	catSeasonID        = 45
-	catEpisodeID       = 46
-	catLanguageID      = 51
-	catQualityID       = 7
-	episodeNbrIDStart  = 936
-	episodeNbrIDMiddle = 1088
-	seasonNbrIDStart   = 968
-	seasonNbrID        = map[int]int{}
-	episodeNbrID       = map[int]int{}
+	catSeasonID          = 45
+	catEpisodeID         = 46
+	catLanguageID        = 51
+	catQualityID         = 7
+	episodeNbrIDStart    = 936
+	episodeNbrIDMiddle   = 1088
+	seasonNbrIDStart     = 968
+	seasonCompleteSeries = 998
+	seasonNbrID          = map[int]int{}
+	episodeNbrID         = map[int]int{}
 	// LanguageMap is a map giving you the keys corresponding
 	// to every available language filter
 	LanguageMap = map[string]int{
@@ -146,7 +147,7 @@ func init() {
 	for i := 0; i < 30; i++ {
 		seasonNbrID[i+1] = seasonNbrIDStart + i
 	}
-	seasonNbrID[0] = 998
+	seasonNbrID[0] = seasonCompleteSeries
 	// see https://github.com/dns-gh/t411-client/issues/3 for more explanation
 	for i := 0; i < 31; i++ {
 		if i == 9 {
