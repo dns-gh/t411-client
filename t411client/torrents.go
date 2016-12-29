@@ -368,6 +368,16 @@ func (t *T411) DownloadTorrent(torrent *Torrent) (string, error) {
 	return filename, nil
 }
 
+func (t *T411) filterByPart(torrents []Torrent) ([]Torrent, error) {
+	filtered := []Torrent{}
+	for _, v := range torrents {
+		if !strings.Contains(strings.ToLower(v.Name), ".part.") {
+			filtered = append(filtered, v)
+		}
+	}
+	return filtered, nil
+}
+
 func (t *T411) filterByDate(torrents []Torrent, date string) ([]Torrent, error) {
 	timeConstraint, err := time.Parse("2006-01-02", date)
 	if err != nil {
@@ -430,6 +440,12 @@ func (t *T411) DownloadTorrentByTerms(title string, season, episode int, languag
 			return "", err
 		}
 
+	}
+	if season != 0 && episode == 0 {
+		torrentList, err = t.filterByPart(torrentList)
+		if err != nil {
+			return "", err
+		}
 	}
 	torrentList, err = t.filterByName(torrentList, title)
 	if err != nil {
