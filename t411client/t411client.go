@@ -34,6 +34,7 @@ var (
 		Code: 201,
 		Text: "Token has expired. Please login",
 	}
+	tokenAttempt = "token retrieved, try again"
 )
 
 // the base url can change every time the t411 api moves from provider
@@ -112,10 +113,7 @@ func (t *T411) OnlyVerified(onlyVerified bool) {
 	t.onlyVerified = onlyVerified
 }
 
-// NewT411Client creates a T411 web client.
-// Note: 'baseURL' is set to the default one if left empty.
-// This parameter will be useful when the baseURL of t411 API becomes unavailable.
-func NewT411Client(baseURL, username, password string) (*T411, error) {
+func newEmptyClient(baseURL, username, password string) *T411 {
 	if len(baseURL) == 0 {
 		baseURL = t411BaseURL
 	}
@@ -125,7 +123,7 @@ func NewT411Client(baseURL, username, password string) (*T411, error) {
 		}).Dial,
 		TLSHandshakeTimeout: 5 * time.Second,
 	}
-	t := &T411{
+	return &T411{
 		baseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout:   time.Second * 10,
@@ -140,11 +138,41 @@ func NewT411Client(baseURL, username, password string) (*T411, error) {
 		keepRatio:    true,
 		onlyVerified: false,
 	}
-	err := t.retrieveToken()
+}
+
+// NewT411Client creates a T411 web client.
+// Note: 'baseURL' is set to the default one if left empty.
+// This parameter will be useful when the baseURL of t411 API becomes unavailable.
+func NewT411Client(baseURL, username, password string) (*T411, error) {
+	client := newEmptyClient(baseURL, username, password)
+	err := client.retrieveToken()
 	if err != nil {
 		return nil, err
 	}
-	return t, nil
+	return client, nil
+}
+
+// NewT411ClientWithToken creates a T411 web client the same way NewT411Client does
+// but with a token parameter from a previous session. If the token is in invalid format it returns an error.
+func NewT411ClientWithToken(baseURL, username, password, previousToken string) (*T411, error) {
+	if len(previousToken) == 0 {
+		return NewT411Client(baseURL, username, password)
+	}
+	splitted := strings.Split(previousToken, ":")
+	if len(splitted) != 3 {
+		return nil, fmt.Errorf("%s", "invalid token format, must be of the form 12345:123:abcdefghijklmnopqr")
+	}
+	client := newEmptyClient(baseURL, username, password)
+	client.token.Token = previousToken
+	client.token.UID = splitted[0]
+	_, err := client.UsersProfile(client.token.UID)
+	if err != nil {
+		if strings.Contains(err.Error(), tokenAttempt) {
+			return client, nil
+		}
+		return nil, fmt.Errorf("%s", err.Error())
+	}
+	return client, nil
 }
 
 func (t *T411) doRequest(req *http.Request) (*http.Response, error) {
@@ -171,7 +199,7 @@ func (t *T411) do(method string, u *url.URL, body io.Reader) (*http.Response, er
 			if err2 != nil {
 				return nil, err2
 			}
-			return nil, fmt.Errorf("%s -> token retrieved, try again", err.Error())
+			return nil, fmt.Errorf("%s -> %s", err.Error(), tokenAttempt)
 		}
 		return nil, err
 	}
