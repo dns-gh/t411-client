@@ -206,6 +206,16 @@ func (t *T411) do(method string, u *url.URL, body io.Reader) (*http.Response, er
 	return resp, nil
 }
 
+func fixTorrentList(str, expression, replacement string) (string, bool) {
+	re := regexp.MustCompile(expression)
+	split := re.Split(str, -1)
+	if len(split) >= 2 {
+		str = strings.Join(split, replacement)
+		return str, true
+	}
+	return str, false
+}
+
 // fixJSONResponse fixes the json response for /torrents/search/ api endpoint for the fields
 // offset, limit, total and owner.
 func fixJSONResponse(bytes []byte) []byte {
@@ -216,16 +226,15 @@ func fixJSONResponse(bytes []byte) []byte {
 	str = strings.Replace(str, fmt.Sprintf("%q:0", "owner"), fmt.Sprintf("%q:%q", "owner", "0"), 1)
 	// removes unwanted integers in the list of torrents that appears sometimes
 	// and replace them with empty Torrent data.
-	re := regexp.MustCompile("},[0-9]+,{")
-	split := re.Split(str, -1)
-	str = strings.Join(split, "},{},{")
-	re = regexp.MustCompile(":\\[[0-9]+,")
-	split = re.Split(str, -1)
-	str = strings.Join(split, ":[{},")
-	re = regexp.MustCompile(",[0-9]+\\]}")
-	split = re.Split(str, -1)
-	str = strings.Join(split, ",{}]}")
-	return []byte(str)
+	str, _ = fixTorrentList(str, ":\\[[0-9]+,", ":[{},")
+	str, _ = fixTorrentList(str, ",[0-9]+\\]}", ",{}]}")
+	str, _ = fixTorrentList(str, ":\\[[0-9]+\\]}", ":[{}]}")
+	for {
+		str, ok := fixTorrentList(str, ",[0-9]+,", ",{},")
+		if !ok {
+			return []byte(str)
+		}
+	}
 }
 
 func decodeErr(resp *http.Response) ([]byte, error) {
