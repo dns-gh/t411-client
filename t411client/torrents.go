@@ -158,6 +158,12 @@ func init() {
 			episodeNbrID[31+i] = episodeNbrIDMiddle + i
 		}
 	}
+	// switch 16 <-> 17 episode values. See:
+	// <option value="954">Episode 16</option>
+	// <option value="953">Episode 17</option>
+	temp := episodeNbrID[16]
+	episodeNbrID[16] = episodeNbrID[17]
+	episodeNbrID[17] = temp
 }
 
 func addEpisode(v url.Values, episode int) {
