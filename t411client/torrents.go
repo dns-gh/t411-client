@@ -440,6 +440,12 @@ func (t *T411) DownloadTorrentByTerms(title string, season, episode int, languag
 		return "", err
 	}
 	torrentList := torrents.Torrents
+	// filter by name first since pending torrents can have
+	// field Name empty so we check that first.
+	torrentList, err = t.filterByName(torrentList, title)
+	if err != nil {
+		return "", err
+	}
 	if len(date) != 0 {
 		torrentList, err = t.filterByDate(torrentList, date)
 		if err != nil {
@@ -452,10 +458,6 @@ func (t *T411) DownloadTorrentByTerms(title string, season, episode int, languag
 		if err != nil {
 			return "", err
 		}
-	}
-	torrentList, err = t.filterByName(torrentList, title)
-	if err != nil {
-		return "", err
 	}
 	if len(torrentList) == 0 {
 		return "", ErrTorrentNotFound
