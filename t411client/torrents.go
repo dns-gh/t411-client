@@ -334,7 +334,7 @@ func (t *T411) checkVerified(torrent *Torrent) error {
 	return nil
 }
 
-// DownloadTorrent downloads the torrentinto a temporary
+// DownloadTorrent downloads the torrent into a temporary
 // folder on success and returns the absolute path to the newly created file.
 func (t *T411) DownloadTorrent(torrent *Torrent) (string, error) {
 	if err := t.checkRatio(torrent); err != nil {
@@ -451,7 +451,6 @@ func (t *T411) DownloadTorrentByTerms(title string, season, episode int, languag
 		if err != nil {
 			return "", err
 		}
-
 	}
 	if season != 0 && episode == 0 {
 		torrentList, err = t.filterByPart(torrentList)

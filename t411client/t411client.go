@@ -44,7 +44,7 @@ const (
 	// UserAgent is the user agent header used in http requests.
 	// You can override it if wanted when using t411client package.
 	UserAgent    = "TBotAgent"
-	defaultDelay = 24 * 7 * 9 // 9 weeks
+	defaultDelay = 24 * 7 * 12 // 9 weeks
 )
 
 type errAPI struct {
