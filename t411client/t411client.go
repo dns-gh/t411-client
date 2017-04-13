@@ -34,7 +34,11 @@ var (
 		Code: 201,
 		Text: "Token has expired. Please login",
 	}
-	tokenAttempt = "token retrieved, try again"
+	ErrTokenInvalid = &errAPI{
+		Code: 202,
+		Text: "Invalid token",
+	}
+	TokenAttempt = "token retrieved, try again"
 )
 
 // the base url can change every time the t411 api moves from provider
@@ -167,7 +171,7 @@ func NewT411ClientWithToken(baseURL, username, password, previousToken string) (
 	client.token.UID = splitted[0]
 	_, err := client.UsersProfile(client.token.UID)
 	if err != nil {
-		if strings.Contains(err.Error(), tokenAttempt) {
+		if strings.Contains(err.Error(), TokenAttempt) {
 			return client, nil
 		}
 		return nil, fmt.Errorf("%s", err.Error())
@@ -256,6 +260,16 @@ func decodeErr(resp *http.Response) ([]byte, error) {
 func (t *T411) decode(data interface{}, resp *http.Response, usedAPI, query string) error {
 	bytes, err := decodeErr(resp)
 	if err != nil {
+		// for any requests, if it is a token expired response and that we're not in an auth request already
+		// then retrieve token automatically.
+		if (err.Error() == ErrTokenExpired.Error() || err.Error() == ErrTokenInvalid.Error()) && usedAPI != authAPI {
+			log.Printf("Token has something wrong: %s", err.Error())
+			err2 := t.retrieveToken()
+			if err2 != nil {
+				return fmt.Errorf("Token retrieved failed: %s", err2.Error())
+			}
+			return fmt.Errorf("%s", TokenAttempt)
+		}
 		return err
 	}
 	if err = json.Unmarshal(fixJSONResponse(bytes), data); err != nil {
@@ -278,6 +292,8 @@ func (t *T411) retrieveToken() error {
 	form := url.Values{}
 	form.Set("username", t.credentials.Username)
 	form.Set("password", t.credentials.Password)
+	// reset token since we want a new one potentially
+	t.token = &token{}
 	resp, err := t.do("POST", u, strings.NewReader(form.Encode()))
 	if err != nil {
 		return err
