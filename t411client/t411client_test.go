@@ -51,15 +51,15 @@ func (s *MySuite) TestNewT411(c *C) {
 	checkClient(c, t411, username, password)
 
 	t411, err := NewT411Client("", username, "test")
-	c.Assert(err, DeepEquals, errWrongPassword)
+	c.Assert(err, DeepEquals, ErrWrongPassword)
 	c.Assert(t411, IsNil)
 
 	t411, err = NewT411Client("", "test", "test")
-	c.Assert(err, DeepEquals, errAccountDisabled)
+	c.Assert(err, DeepEquals, ErrAccountDisabled)
 	c.Assert(t411, IsNil)
 
 	t411, err = NewT411Client("", "test_not_found", "test")
-	c.Assert(err, DeepEquals, errUserNotFound)
+	c.Assert(err, DeepEquals, ErrUserNotFound)
 	c.Assert(t411, IsNil)
 
 	t411, err = NewT411Client("https://api.t411.test", username, "test")

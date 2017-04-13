@@ -22,7 +22,7 @@ func (t *T411) UsersProfile(uid string) (*User, error) {
 	usedAPI := "/users/profile"
 	u, err := url.Parse(fmt.Sprintf("%s%s/%s", t.baseURL, usedAPI, url.QueryEscape(uid)))
 	if err != nil {
-		return nil, errURLParsing
+		return nil, ErrURLParsing
 	}
 
 	resp, err := t.do("GET", u, nil)

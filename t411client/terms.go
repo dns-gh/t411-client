@@ -24,7 +24,7 @@ func (t *T411) TermsTree() (*TermsTree, error) {
 	usedAPI := "/terms/tree"
 	u, err := url.Parse(t.baseURL + usedAPI)
 	if err != nil {
-		return nil, errURLParsing
+		return nil, ErrURLParsing
 	}
 
 	resp, err := t.do("GET", u, nil)

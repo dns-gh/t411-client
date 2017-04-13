@@ -22,7 +22,7 @@ func (t *T411) CategoriesTree() (*Categories, error) {
 	usedAPI := "/categories/tree"
 	u, err := url.Parse(t.baseURL + usedAPI)
 	if err != nil {
-		return nil, errURLParsing
+		return nil, ErrURLParsing
 	}
 
 	resp, err := t.do("GET", u, nil)

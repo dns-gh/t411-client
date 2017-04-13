@@ -16,21 +16,21 @@ import (
 )
 
 var (
-	errNoToken       = errors.New("no token")
-	errURLParsing    = errors.New("url parsing error")
-	errWrongPassword = &errAPI{
+	ErrNoToken       = errors.New("no token")
+	ErrURLParsing    = errors.New("url parsing error")
+	ErrWrongPassword = &errAPI{
 		Code: 107,
 		Text: "Wrong password",
 	}
-	errAccountDisabled = &errAPI{
+	ErrAccountDisabled = &errAPI{
 		Code: 103,
 		Text: "Account is disabled",
 	}
-	errUserNotFound = &errAPI{
+	ErrUserNotFound = &errAPI{
 		Code: 101,
 		Text: "User not found",
 	}
-	errTokenExpired = &errAPI{
+	ErrTokenExpired = &errAPI{
 		Code: 201,
 		Text: "Token has expired. Please login",
 	}
@@ -84,7 +84,7 @@ func (t *T411) GetToken() (string, error) {
 	if t.token != nil {
 		return t.token.Token, nil
 	}
-	return "", errNoToken
+	return "", ErrNoToken
 }
 
 // SetMaxDelay sets the maximum delay allowed to have between
@@ -194,13 +194,6 @@ func (t *T411) do(method string, u *url.URL, body io.Reader) (*http.Response, er
 
 	resp, err := t.doRequest(req)
 	if err != nil {
-		if err.Error() == errTokenExpired.Error() && u.RequestURI() != authAPI {
-			err2 := t.retrieveToken()
-			if err2 != nil {
-				return nil, err2
-			}
-			return nil, fmt.Errorf("%s -> %s", err.Error(), tokenAttempt)
-		}
 		return nil, err
 	}
 	return resp, nil
