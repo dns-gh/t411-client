@@ -203,9 +203,9 @@ func addLimit(v url.Values, limit int) {
 }
 
 // URL returns the url of the search request
-func makeURL(title string, season, episode int, language, quality string, offset, limit int) (string, *url.URL, error) {
+func (t *T411) makeURL(title string, season, episode int, language, quality string, offset, limit int) (string, *url.URL, error) {
 	usedAPI := "/torrents/search/"
-	u, err := url.Parse(fmt.Sprintf("%s%s%s", t411BaseURL, usedAPI, title))
+	u, err := url.Parse(fmt.Sprintf("%s%s%s", t.baseURL, usedAPI, title))
 	if err != nil {
 		return usedAPI, nil, err
 	}
@@ -229,7 +229,7 @@ func makeURL(title string, season, episode int, language, quality string, offset
 // The 'language' parameter must be one the values of the LanguageMap variable.
 // The 'quality' parameter must be one the values of the QualityMap variable.
 func (t *T411) SearchTorrentsByTerms(title string, season, episode int, language, quality string, offset, limit int) (*Torrents, error) {
-	usedAPI, u, err := makeURL(title, season, episode, language, quality, offset, limit)
+	usedAPI, u, err := t.makeURL(title, season, episode, language, quality, offset, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +287,7 @@ type TorrentDetails struct {
 // TorrentsDetails returns the details of a torrent from a torrent 'id'.
 func (t *T411) TorrentsDetails(id string) (*TorrentDetails, error) {
 	usedAPI := "/torrents/details/"
-	u, err := url.Parse(fmt.Sprintf("%s%s%s", t411BaseURL, usedAPI, id))
+	u, err := url.Parse(fmt.Sprintf("%s%s%s", t.baseURL, usedAPI, id))
 	if err != nil {
 		return nil, err
 	}

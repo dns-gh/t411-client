@@ -43,7 +43,7 @@ var (
 
 // the base url can change every time the t411 api moves from provider
 const (
-	t411BaseURL = "https://api.t411.li"
+	t411BaseURL = "https://api.t411.al"
 	authAPI     = "/auth"
 	// UserAgent is the user agent header used in http requests.
 	// You can override it if wanted when using t411client package.
