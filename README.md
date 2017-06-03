@@ -5,7 +5,7 @@
 [![GoDoc](https://godoc.org/github.com/dns-gh/t411-client/t411client?status.png)]
 (https://godoc.org/github.com/dns-gh/t411-client/t411client)
 
-t411-client is a Go web client for the t411 website API: https://api.t411.li/
+t411-client is a Go web client for the t411 website API: https://api.t411.al/ (watch out for the domain name that can change over time)
 
 ## Motivation
 
